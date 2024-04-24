@@ -1,6 +1,6 @@
 [workspace]
 members = [
-#    "packages/*",
+    "packages/*",
     "contracts/*",
 ]
 resolver = "2"
@@ -17,6 +17,8 @@ panic = 'abort'
 strip = true
 
 [workspace.dependencies]
+cw721-tracks-api = { path = "./packages/cw721-tracks-api", default-features = false, version = "0.1.0" }
+
 cosmwasm-std = "2.0.2"
 cw-utils = "2.0.0"
 cw-storage-plus = "2.0.0"

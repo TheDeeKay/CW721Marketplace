@@ -1,8 +1,6 @@
-use cosmwasm_std::{Binary, Deps, DepsMut, Empty, entry_point, Env, MessageInfo, Reply, Response};
-use cw721_base::{ContractError, Extension, InstantiateMsg};
-
-pub type ExecuteMsg = cw721_base::ExecuteMsg<Extension, Empty>;
-pub type QueryMsg = cw721_base::QueryMsg<Empty>;
+use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response};
+use cw721_tracks_api::error::TracksError;
+use cw721_tracks_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -10,7 +8,7 @@ pub fn instantiate(
     _env: Env,
     _info: MessageInfo,
     _msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response, TracksError> {
     todo!()
 }
 
@@ -20,17 +18,17 @@ pub fn execute(
     _env: Env,
     _info: MessageInfo,
     _msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response, TracksError> {
     todo!()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> Result<Binary, ContractError> {
+pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> Result<Binary, TracksError> {
     todo!()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(_deps: DepsMut, _env: Env, _msg: Reply) -> Result<Response, ContractError> {
+pub fn reply(_deps: DepsMut, _env: Env, _msg: Reply) -> Result<Response, TracksError> {
     todo!()
 }
 
@@ -40,6 +38,6 @@ pub fn migrate(
     _env: Env,
     _info: MessageInfo,
     _msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response, TracksError> {
     todo!()
 }

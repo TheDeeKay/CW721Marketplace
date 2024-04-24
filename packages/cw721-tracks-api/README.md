@@ -1,0 +1,1 @@
+Contains items of the cw721-tracks contract's API, necessary to interact with it.

@@ -1,9 +1,8 @@
+use cosmwasm_schema::schemars::schema_for;
+use cosmwasm_schema::{export_schema, remove_schemas};
+use cw721_tracks_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use std::env::current_dir;
 use std::fs::create_dir_all;
-use cosmwasm_schema::{export_schema, remove_schemas};
-use cosmwasm_schema::schemars::schema_for;
-use cw721_base::InstantiateMsg;
-use cw721_tracks::contract::{ExecuteMsg, QueryMsg};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
