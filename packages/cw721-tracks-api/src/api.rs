@@ -3,10 +3,15 @@ use cosmwasm_std::Uint64;
 
 #[cw_serde]
 pub struct TrackMetadata {
-    pub name: String,
-    pub album_name: String,
-    pub album_artwork_url: String,
-    pub album_year: Uint64,
+    pub artist_name: String,
+    pub album: Option<AlbumMetadata>,
     pub track_name: String,
     pub audio_track_url: String,
+}
+
+#[cw_serde]
+pub struct AlbumMetadata {
+    pub name: String,
+    pub artwork_url: Option<String>,
+    pub year: Option<Uint64>,
 }

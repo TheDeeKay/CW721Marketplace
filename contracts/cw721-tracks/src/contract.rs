@@ -1,43 +1,39 @@
-use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response};
+use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
+use cw721_tracks_api::api::TrackMetadata;
 use cw721_tracks_api::error::TracksError;
 use cw721_tracks_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
+// Version info for migration
+const CONTRACT_NAME: &str = "cw721-tracks";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, TrackMetadata, Empty, Empty, Empty>;
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: InstantiateMsg,
+    mut deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: InstantiateMsg,
 ) -> Result<Response, TracksError> {
-    todo!()
+    cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    Ok(Cw721MetadataContract::default().instantiate(deps.branch(), env, info, msg)?)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> Result<Response, TracksError> {
-    todo!()
+    Cw721MetadataContract::default().execute(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> Result<Binary, TracksError> {
-    todo!()
-}
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, TracksError> {
+    let response = Cw721MetadataContract::default().query(deps, env, msg)?;
 
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(_deps: DepsMut, _env: Env, _msg: Reply) -> Result<Response, TracksError> {
-    todo!()
-}
-
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
-) -> Result<Response, TracksError> {
-    todo!()
+    Ok(response)
 }
