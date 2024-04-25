@@ -1,0 +1,18 @@
+[package]
+name = "tests-integration"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75.0"
+
+[features]
+modules = []
+
+[dev-dependencies]
+
+#Cosmwasm Crates
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cw721-base = { workspace = true }
+cw721 = { workspace = true }
+
+cw-multi-test = { workspace = true }

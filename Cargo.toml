@@ -2,6 +2,7 @@
 members = [
     "packages/*",
     "contracts/*",
+    "tests-integration"
 ]
 resolver = "2"
 
@@ -30,6 +31,6 @@ cw721 = "0.18.0"
 cw721-base = { version = "0.18.0", features = ["library"] }
 cw-asset = "3.0.0"
 cosmwasm-schema = "2.0.2"
-cw-multi-test = { version = "2.0.1", features = ["cosmwasm_1_2"] }
+cw-multi-test = { version = "1.1.0" }
 serde = { version = "1.0.127" }
 thiserror = { version = "1.0.59" }
