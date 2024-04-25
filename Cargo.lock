@@ -875,6 +875,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracks-auction-api"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema 2.0.2",
+ "cosmwasm-std",
+ "cw721-tracks-api",
+ "serde",
+]
+
+[[package]]
 name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

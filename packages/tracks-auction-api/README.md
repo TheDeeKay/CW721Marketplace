@@ -1,0 +1,1 @@
+Contains items of the tracks-auction contract's API, necessary to interact with it.
