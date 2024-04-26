@@ -1,17 +1,17 @@
 use crate::auctions::{load_auctions, save_auction};
-use crate::state::{add_whitelisted_cw721, is_cw721_whitelisted, load_whitelisted_nfts};
+use crate::config::{load_config, save_config};
 use cosmwasm_std::{
     entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdError,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{AuctionsResponse, NftWhitelistResponse, TrackAuction};
+use tracks_auction_api::api::{AuctionsResponse, Config, ConfigResponse, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
 use ExecuteMsg::ReceiveNft;
-use QueryMsg::{Auctions, NftWhitelist};
+use QueryMsg::Auctions;
 
 // Version info for migration
 const CONTRACT_NAME: &str = "tracks-auction";
@@ -22,14 +22,16 @@ pub fn instantiate(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> AuctionResult<Response> {
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    for cw721 in _msg.whitelisted_nfts {
-        let addr = deps.api.addr_validate(&cw721)?;
-        add_whitelisted_cw721(deps.storage, addr)?;
-    }
+    let nft_addr = deps.api.addr_validate(&msg.whitelisted_nft)?;
+
+    let config = Config {
+        whitelisted_nft: nft_addr,
+    };
+    save_config(deps.storage, &config)?;
 
     Ok(Response::new()) // TODO: add some attributes
 }
@@ -53,8 +55,10 @@ fn receive_nft(
     info: MessageInfo,
     msg: Cw721ReceiveMsg,
 ) -> AuctionResult<Response> {
-    // only whitelisted NFTs can call this
-    if !is_cw721_whitelisted(deps.storage, info.sender.clone())? {
+    let config = load_config(deps.storage)?;
+
+    // only whitelisted NFT can call this
+    if info.sender != config.whitelisted_nft {
         return Err(Cw721NotWhitelisted);
     }
 
@@ -78,9 +82,9 @@ fn receive_nft(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, AuctionError> {
     let response = match msg {
-        NftWhitelist {} => {
-            let nft_whitelist = load_whitelisted_nfts(deps.storage)?;
-            to_json_binary(&NftWhitelistResponse { nft_whitelist })?
+        QueryMsg::Config {} => {
+            let config = load_config(deps.storage)?;
+            to_json_binary(&ConfigResponse { config })?
         }
         Auctions {} => {
             let auctions = load_auctions(deps.storage)?;

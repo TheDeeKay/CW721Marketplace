@@ -16,9 +16,7 @@ pub fn instantiate_tracks_auction(
     code_id: u64,
     whitelisted_nft: String,
 ) -> AnyResult<Addr> {
-    let msg = tracks_auction_api::msg::InstantiateMsg {
-        whitelisted_nfts: vec![whitelisted_nft],
-    };
+    let msg = tracks_auction_api::msg::InstantiateMsg { whitelisted_nft };
 
     app.instantiate_contract(
         code_id,

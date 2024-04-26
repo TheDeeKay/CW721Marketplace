@@ -1,6 +1,6 @@
 pub mod contract;
 
 mod auctions;
-mod state;
+mod config;
 #[cfg(test)]
 mod tests;

@@ -1,12 +1,12 @@
-use crate::api::{AuctionsResponse, NftWhitelistResponse};
+use crate::api::{AuctionsResponse, ConfigResponse};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
 use cw721::Cw721ReceiveMsg;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    /// List of NFT contracts whose tokens are allowed in this auction contract.
-    pub whitelisted_nfts: Vec<String>,
+    /// NFT contract whose tokens are allowed in this auction contract.
+    pub whitelisted_nft: String,
 }
 
 #[cw_serde]
@@ -25,8 +25,8 @@ pub enum Cw721HookMsg {
 #[derive(QueryResponses)]
 #[cw_serde]
 pub enum QueryMsg {
-    #[returns(NftWhitelistResponse)]
-    NftWhitelist {},
+    #[returns(ConfigResponse)]
+    Config {},
     #[returns(AuctionsResponse)]
     Auctions {},
 }

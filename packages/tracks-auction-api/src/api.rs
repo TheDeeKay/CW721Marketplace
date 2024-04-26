@@ -2,6 +2,11 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Uint128};
 
 #[cw_serde]
+pub struct Config {
+    pub whitelisted_nft: Addr,
+}
+
+#[cw_serde]
 pub struct TrackAuction {
     pub track_nft_contract: Addr,
     pub track_token_id: String,
@@ -14,6 +19,6 @@ pub struct AuctionsResponse {
 }
 
 #[cw_serde]
-pub struct NftWhitelistResponse {
-    pub nft_whitelist: Vec<Addr>,
+pub struct ConfigResponse {
+    pub config: Config,
 }
