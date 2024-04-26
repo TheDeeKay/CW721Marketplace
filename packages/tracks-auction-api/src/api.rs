@@ -12,3 +12,8 @@ pub struct TrackAuction {
 pub struct AuctionsResponse {
     pub auctions: Vec<TrackAuction>,
 }
+
+#[cw_serde]
+pub struct NftWhitelistResponse {
+    pub nft_whitelist: Vec<Addr>,
+}

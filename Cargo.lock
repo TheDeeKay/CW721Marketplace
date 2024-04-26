@@ -972,6 +972,7 @@ dependencies = [
 name = "tracks-auction"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cosmwasm-schema 2.0.2",
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",

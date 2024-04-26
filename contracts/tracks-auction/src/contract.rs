@@ -1,16 +1,17 @@
 use crate::auctions::{load_auctions, save_auction};
-use crate::state::{add_whitelisted_cw721, is_cw721_whitelisted};
+use crate::state::{add_whitelisted_cw721, is_cw721_whitelisted, load_whitelisted_nfts};
 use cosmwasm_std::{
     entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdError,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{AuctionsResponse, TrackAuction};
+use tracks_auction_api::api::{AuctionsResponse, NftWhitelistResponse, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
 use ExecuteMsg::ReceiveNft;
+use QueryMsg::{Auctions, NftWhitelist};
 
 // Version info for migration
 const CONTRACT_NAME: &str = "tracks-auction";
@@ -75,9 +76,17 @@ fn receive_nft(
 
 // TODO: move to another file? or just the individual parts
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, _msg: QueryMsg) -> Result<Binary, AuctionError> {
-    // TODO: match the msg
-    Ok(to_json_binary(&AuctionsResponse {
-        auctions: load_auctions(deps.storage)?,
-    })?)
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, AuctionError> {
+    let response = match msg {
+        NftWhitelist {} => {
+            let nft_whitelist = load_whitelisted_nfts(deps.storage)?;
+            to_json_binary(&NftWhitelistResponse { nft_whitelist })?
+        }
+        Auctions {} => {
+            let auctions = load_auctions(deps.storage)?;
+            to_json_binary(&AuctionsResponse { auctions })?
+        }
+    };
+
+    Ok(response)
 }

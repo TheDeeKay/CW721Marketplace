@@ -1,4 +1,4 @@
-use crate::api::AuctionsResponse;
+use crate::api::{AuctionsResponse, NftWhitelistResponse};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
 use cw721::Cw721ReceiveMsg;
@@ -25,6 +25,8 @@ pub enum Cw721HookMsg {
 #[derive(QueryResponses)]
 #[cw_serde]
 pub enum QueryMsg {
+    #[returns(NftWhitelistResponse)]
+    NftWhitelist {},
     #[returns(AuctionsResponse)]
     Auctions {},
 }
