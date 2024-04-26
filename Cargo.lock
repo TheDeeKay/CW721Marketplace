@@ -934,11 +934,16 @@ dependencies = [
 name = "tests-integration"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cosmwasm-schema 2.0.2",
  "cosmwasm-std",
  "cw-multi-test",
  "cw721 0.18.0",
  "cw721-base 0.18.0",
+ "cw721-tracks",
+ "cw721-tracks-api",
+ "tracks-auction",
+ "tracks-auction-api",
 ]
 
 [[package]]

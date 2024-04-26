@@ -9,6 +9,14 @@ modules = []
 
 [dev-dependencies]
 
+anyhow = { workspace = true }
+
+tracks-auction-api = { workspace = true }
+tracks-auction = { workspace = true }
+
+cw721-tracks = { workspace = true }
+cw721-tracks-api = { workspace = true }
+
 #Cosmwasm Crates
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }

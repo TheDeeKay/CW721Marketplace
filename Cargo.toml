@@ -18,9 +18,14 @@ panic = 'abort'
 strip = true
 
 [workspace.dependencies]
+
 cw721-tracks-api = { path = "./packages/cw721-tracks-api", default-features = false, version = "0.1.0" }
 tracks-auction-api = { path = "./packages/tracks-auction-api", default-features = false, version = "0.1.0" }
 
+cw721-tracks = { path = "./contracts/cw721-tracks", default-features = false, version = "0.1.0" }
+tracks-auction = { path = "./contracts/tracks-auction", default-features = false, version = "0.1.0" }
+
+anyhow = "1.0.75"
 cosmwasm-std = "1.5.2"
 cw-utils = "1.0.3"
 cw-storage-plus = "1.2.0"

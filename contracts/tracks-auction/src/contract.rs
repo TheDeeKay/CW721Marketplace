@@ -15,7 +15,7 @@ pub fn instantiate(
 ) -> Result<Response, AuctionError> {
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    todo!()
+    Ok(Response::new()) // TODO: add some attributes
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
