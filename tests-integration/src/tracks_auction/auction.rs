@@ -1,11 +1,11 @@
 use crate::cw721_tracks::cw721_tracks_helpers::{mint_nft, store_and_instantiate_cw721_tracks};
-use crate::helpers::USER1;
+use crate::helpers::{UATOM, USER1};
 use crate::tracks_auction::tracks_auction_helpers::store_and_instantiate_tracks_auction;
 use cosmwasm_std::{to_json_binary, Uint128};
 use cw721::Cw721ExecuteMsg::SendNft;
 use cw721_tracks_api::api::TrackMetadata;
 use cw_multi_test::{App, Executor, IntoAddr};
-use tracks_auction_api::api::{AuctionsResponse, TrackAuction};
+use tracks_auction_api::api::{AuctionsResponse, PriceAsset, TrackAuction};
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::QueryMsg::Auctions;
 
@@ -19,8 +19,11 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
     let whitelisted_nft = "another_contract";
     assert_ne!(whitelisted_nft.to_string(), cw721_tracks.to_string());
 
-    let (_, tracks_auction) =
-        store_and_instantiate_tracks_auction(&mut app, whitelisted_nft.to_string())?;
+    let (_, tracks_auction) = store_and_instantiate_tracks_auction(
+        &mut app,
+        whitelisted_nft.to_string(),
+        PriceAsset::native(UATOM),
+    )?;
 
     mint_nft(
         &mut app,
@@ -61,8 +64,11 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
 
     let (_, cw721_tracks) = store_and_instantiate_cw721_tracks(&mut app)?;
 
-    let (_, tracks_auction) =
-        store_and_instantiate_tracks_auction(&mut app, cw721_tracks.to_string())?;
+    let (_, tracks_auction) = store_and_instantiate_tracks_auction(
+        &mut app,
+        cw721_tracks.to_string(),
+        PriceAsset::native(UATOM),
+    )?;
 
     let track_token_id = "first_track";
 
@@ -100,9 +106,11 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     assert_eq!(
         response.auctions,
         vec![TrackAuction {
+            id: 0,
             submitter: USER1.into_addr(),
             track_token_id: track_token_id.to_string(),
             minimum_bid_amount: 4u128.into(),
+            price_asset: PriceAsset::native(UATOM),
         }]
     );
 

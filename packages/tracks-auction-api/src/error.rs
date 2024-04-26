@@ -10,4 +10,10 @@ pub enum AuctionError {
 
     #[error("CW721 you're using is not whitelisted for auctions")]
     Cw721NotWhitelisted,
+
+    #[error("Attempting to bid with no funds")]
+    NoBidFundsSupplied,
+
+    #[error("No auction with given ID was found")]
+    AuctionIdNotFound,
 }

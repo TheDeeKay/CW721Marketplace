@@ -2,6 +2,8 @@ use crate::helpers::ADMIN;
 use cosmwasm_std::Addr;
 use cw_multi_test::error::AnyResult;
 use cw_multi_test::{App, ContractWrapper, Executor, IntoAddr};
+use tracks_auction_api::api::PriceAsset;
+use tracks_auction_api::msg::InstantiateMsg;
 
 pub fn store_tracks_auction_code(app: &mut App) -> u64 {
     app.store_code(Box::new(ContractWrapper::new(
@@ -15,8 +17,12 @@ pub fn instantiate_tracks_auction(
     app: &mut App,
     code_id: u64,
     whitelisted_nft: String,
+    price_asset: PriceAsset,
 ) -> AnyResult<Addr> {
-    let msg = tracks_auction_api::msg::InstantiateMsg { whitelisted_nft };
+    let msg = InstantiateMsg {
+        whitelisted_nft,
+        price_asset,
+    };
 
     app.instantiate_contract(
         code_id,
@@ -31,9 +37,10 @@ pub fn instantiate_tracks_auction(
 pub fn store_and_instantiate_tracks_auction(
     app: &mut App,
     whitelisted_nft: String,
+    price_asset: PriceAsset,
 ) -> AnyResult<(u64, Addr)> {
     let code_id = store_tracks_auction_code(app);
-    let addr = instantiate_tracks_auction(app, code_id, whitelisted_nft);
+    let addr = instantiate_tracks_auction(app, code_id, whitelisted_nft, price_asset);
 
     addr.map(|address| (code_id, address))
 }

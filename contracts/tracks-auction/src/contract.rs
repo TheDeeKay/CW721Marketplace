@@ -1,4 +1,4 @@
-use crate::auctions::save_auction;
+use crate::auctions::{load_auction, save_auction};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auctions, query_config};
 use cosmwasm_std::{
@@ -6,12 +6,14 @@ use cosmwasm_std::{
     StdError,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{Config, TrackAuction};
-use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
+use tracks_auction_api::api::{AuctionId, Config};
+use tracks_auction_api::error::AuctionError::{
+    AuctionIdNotFound, Cw721NotWhitelisted, NoBidFundsSupplied,
+};
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
-use ExecuteMsg::ReceiveNft;
+use ExecuteMsg::{Bid, ReceiveNft};
 use QueryMsg::Auctions;
 
 // Version info for migration
@@ -31,6 +33,7 @@ pub fn instantiate(
 
     let config = Config {
         whitelisted_nft: nft_addr,
+        price_asset: msg.price_asset,
     };
     save_config(deps.storage, &config)?;
 
@@ -46,11 +49,12 @@ pub fn execute(
 ) -> AuctionResult<Response> {
     match msg {
         ReceiveNft(nft_msg) => receive_nft(deps, env, info, nft_msg),
+        Bid { auction_id } => bid(deps, env, info, auction_id),
     }
 }
 
 // TODO: move to another file
-fn receive_nft(
+pub fn receive_nft(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
@@ -65,17 +69,25 @@ fn receive_nft(
 
     match from_json(msg.msg) {
         Ok(CreateAuction { minimum_bid_amount }) => {
-            save_auction(
-                deps.storage,
-                TrackAuction {
-                    submitter: deps.api.addr_validate(&msg.sender)?,
-                    track_token_id: msg.token_id,
-                    minimum_bid_amount,
-                },
-            )?;
+            let submitter = deps.api.addr_validate(&msg.sender)?;
+            save_auction(deps.storage, submitter, msg.token_id, minimum_bid_amount)?;
             Ok(Response::new()) // TODO: add attributes
         }
         _ => Err(StdError::generic_err("unknown NFT receive hook message").into()),
+    }
+}
+
+// TODO: move to another file
+pub fn bid(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    auction_id: AuctionId,
+) -> AuctionResult<Response> {
+    let auction = load_auction(deps.storage, auction_id)?;
+    match auction {
+        None => Err(AuctionIdNotFound),
+        Some(_) => Err(NoBidFundsSupplied),
     }
 }
 
