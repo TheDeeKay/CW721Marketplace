@@ -13,7 +13,7 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
 
     let (_, tracks_auction) = store_and_instantiate_tracks_auction(&mut app)?;
 
-    let (_, cw721_tracks) = store_and_instantiate_cw721_tracks(&mut app, USER1)?;
+    let (_, cw721_tracks) = store_and_instantiate_cw721_tracks(&mut app)?;
 
     // TODO: extract minting function
     app.execute_contract(

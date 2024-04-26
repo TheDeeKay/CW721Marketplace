@@ -11,12 +11,10 @@ pub fn store_cw721_tracks_code(app: &mut App) -> u64 {
     )))
 }
 
-// TODO: remove minter param
-pub fn instantiate_cw721_tracks(app: &mut App, code_id: u64, minter: &str) -> AnyResult<Addr> {
+pub fn instantiate_cw721_tracks(app: &mut App, code_id: u64) -> AnyResult<Addr> {
     let msg = cw721_tracks_api::msg::InstantiateMsg {
         name: "CW721 tracks".to_string(),
         symbol: "TRKS".to_string(),
-        minter: minter.into_addr().to_string(), // TODO: this has to change
     };
 
     app.instantiate_contract(
@@ -29,10 +27,9 @@ pub fn instantiate_cw721_tracks(app: &mut App, code_id: u64, minter: &str) -> An
     )
 }
 
-// TODO: remove minter param
-pub fn store_and_instantiate_cw721_tracks(app: &mut App, minter: &str) -> AnyResult<(u64, Addr)> {
+pub fn store_and_instantiate_cw721_tracks(app: &mut App) -> AnyResult<(u64, Addr)> {
     let code_id = store_cw721_tracks_code(app);
-    let addr = instantiate_cw721_tracks(app, code_id, minter);
+    let addr = instantiate_cw721_tracks(app, code_id);
 
     addr.map(|address| (code_id, address))
 }

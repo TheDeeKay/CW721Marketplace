@@ -435,9 +435,11 @@ dependencies = [
 name = "cw721-tracks"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cosmwasm-schema 2.0.2",
  "cosmwasm-std",
  "cw2 1.1.2",
+ "cw721 0.18.0",
  "cw721-base 0.18.0",
  "cw721-tracks-api",
  "thiserror",

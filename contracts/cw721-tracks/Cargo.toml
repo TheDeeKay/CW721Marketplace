@@ -18,8 +18,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cw721-tracks-api = { workspace = true }
 
+anyhow = { workspace = true }
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 cw2 = { workspace = true }
+cw721 = { workspace = true }
 cw721-base = { workspace = true }
 thiserror = { workspace = true }
