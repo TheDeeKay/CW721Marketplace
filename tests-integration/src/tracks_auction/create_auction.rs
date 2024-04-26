@@ -1,13 +1,11 @@
-use cosmwasm_std::{to_json_binary, Addr};
+use crate::cw721_tracks::cw721_tracks_helpers::store_and_instantiate_cw721_tracks;
+use crate::helpers::{ADMIN, USER1};
+use crate::tracks_auction::tracks_auction_helpers::store_and_instantiate_tracks_auction;
+use cosmwasm_std::to_json_binary;
 use cw721::Cw721ExecuteMsg::SendNft;
 use cw721_tracks_api::api::TrackMetadata;
-use cw_multi_test::error::AnyResult;
-use cw_multi_test::{App, ContractWrapper, Executor, IntoAddr};
+use cw_multi_test::{App, Executor, IntoAddr};
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
-
-const ADMIN: &str = "admin";
-
-const USER1: &str = "user1";
 
 #[test]
 fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Result<()> {
@@ -49,66 +47,4 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
     assert!(result.is_err());
 
     Ok(())
-}
-
-fn store_tracks_auction_code(app: &mut App) -> u64 {
-    app.store_code(Box::new(ContractWrapper::new(
-        tracks_auction::contract::execute,
-        tracks_auction::contract::instantiate,
-        tracks_auction::contract::query,
-    )))
-}
-
-fn instantiate_tracks_auction(app: &mut App, code_id: u64) -> AnyResult<Addr> {
-    let msg = tracks_auction_api::msg::InstantiateMsg {};
-
-    app.instantiate_contract(
-        code_id,
-        ADMIN.into_addr(),
-        &msg,
-        &[],
-        "Tracks auction",
-        Some(ADMIN.to_string()),
-    )
-}
-
-fn store_and_instantiate_tracks_auction(app: &mut App) -> AnyResult<(u64, Addr)> {
-    let code_id = store_tracks_auction_code(app);
-    let addr = instantiate_tracks_auction(app, code_id);
-
-    addr.map(|address| (code_id, address))
-}
-
-fn store_cw721_tracks_code(app: &mut App) -> u64 {
-    app.store_code(Box::new(ContractWrapper::new(
-        cw721_tracks::contract::execute,
-        cw721_tracks::contract::instantiate,
-        cw721_tracks::contract::query,
-    )))
-}
-
-// TODO: remove minter param
-fn instantiate_cw721_tracks(app: &mut App, code_id: u64, minter: &str) -> AnyResult<Addr> {
-    let msg = cw721_tracks_api::msg::InstantiateMsg {
-        name: "CW721 tracks".to_string(),
-        symbol: "TRKS".to_string(),
-        minter: minter.into_addr().to_string(), // TODO: this has to change
-    };
-
-    app.instantiate_contract(
-        code_id,
-        ADMIN.into_addr(),
-        &msg,
-        &[],
-        "Tracks auction",
-        Some(ADMIN.to_string()),
-    )
-}
-
-// TODO: remove minter param
-fn store_and_instantiate_cw721_tracks(app: &mut App, minter: &str) -> AnyResult<(u64, Addr)> {
-    let code_id = store_cw721_tracks_code(app);
-    let addr = instantiate_cw721_tracks(app, code_id, minter);
-
-    addr.map(|address| (code_id, address))
 }
