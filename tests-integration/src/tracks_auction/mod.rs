@@ -1,2 +1,2 @@
-mod create_auction;
+mod auction;
 pub mod tracks_auction_helpers;
