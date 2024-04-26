@@ -9,7 +9,7 @@ use cw721_tracks_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 const CONTRACT_NAME: &str = "cw721-tracks";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub type Cw721MetadataContract<'a> =
+pub type Cw721TrackMetadataContract<'a> =
     cw721_base::Cw721Contract<'a, TrackMetadata, Empty, Empty, Empty>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -25,7 +25,7 @@ pub fn instantiate(
     // this parameter should be meaningless in our case, as minting is permissionless
     let minter = env.contract.address.to_string();
 
-    Ok(Cw721MetadataContract::default().instantiate(
+    Ok(Cw721TrackMetadataContract::default().instantiate(
         deps.branch(),
         env,
         info,
@@ -44,7 +44,7 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, TracksError> {
-    let contract = Cw721MetadataContract::default();
+    let contract = Cw721TrackMetadataContract::default();
     match msg {
         ExecuteMsg::Mint {
             token_id,
@@ -80,7 +80,7 @@ pub fn execute(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, TracksError> {
-    let response = Cw721MetadataContract::default().query(deps, env, msg)?;
+    let response = Cw721TrackMetadataContract::default().query(deps, env, msg)?;
 
     Ok(response)
 }
