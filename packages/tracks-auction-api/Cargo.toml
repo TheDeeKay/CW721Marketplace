@@ -9,8 +9,10 @@ rust-version = "1.75.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+cw721 = { workspace = true }
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 cw721-tracks-api = { workspace = true }
+cw-utils = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

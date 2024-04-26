@@ -11,8 +11,14 @@ pub fn store_tracks_auction_code(app: &mut App) -> u64 {
     )))
 }
 
-pub fn instantiate_tracks_auction(app: &mut App, code_id: u64) -> AnyResult<Addr> {
-    let msg = tracks_auction_api::msg::InstantiateMsg {};
+pub fn instantiate_tracks_auction(
+    app: &mut App,
+    code_id: u64,
+    whitelisted_nft: String,
+) -> AnyResult<Addr> {
+    let msg = tracks_auction_api::msg::InstantiateMsg {
+        whitelisted_nfts: vec![whitelisted_nft],
+    };
 
     app.instantiate_contract(
         code_id,
@@ -24,9 +30,12 @@ pub fn instantiate_tracks_auction(app: &mut App, code_id: u64) -> AnyResult<Addr
     )
 }
 
-pub fn store_and_instantiate_tracks_auction(app: &mut App) -> AnyResult<(u64, Addr)> {
+pub fn store_and_instantiate_tracks_auction(
+    app: &mut App,
+    whitelisted_nft: String,
+) -> AnyResult<(u64, Addr)> {
     let code_id = store_tracks_auction_code(app);
-    let addr = instantiate_tracks_auction(app, code_id);
+    let addr = instantiate_tracks_auction(app, code_id, whitelisted_nft);
 
     addr.map(|address| (code_id, address))
 }
