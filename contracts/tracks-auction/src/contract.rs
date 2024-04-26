@@ -1,11 +1,12 @@
-use crate::auctions::{load_auctions, save_auction};
+use crate::auctions::save_auction;
 use crate::config::{load_config, save_config};
+use crate::query::{query_auctions, query_config};
 use cosmwasm_std::{
     entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdError,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{AuctionsResponse, Config, ConfigResponse, TrackAuction};
+use tracks_auction_api::api::{Config, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -67,7 +68,7 @@ fn receive_nft(
             save_auction(
                 deps.storage,
                 TrackAuction {
-                    track_nft_contract: info.sender,
+                    submitter: deps.api.addr_validate(&msg.sender)?,
                     track_token_id: msg.token_id,
                     minimum_bid_amount,
                 },
@@ -78,18 +79,11 @@ fn receive_nft(
     }
 }
 
-// TODO: move to another file? or just the individual parts
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, AuctionError> {
     let response = match msg {
-        QueryMsg::Config {} => {
-            let config = load_config(deps.storage)?;
-            to_json_binary(&ConfigResponse { config })?
-        }
-        Auctions {} => {
-            let auctions = load_auctions(deps.storage)?;
-            to_json_binary(&AuctionsResponse { auctions })?
-        }
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
+        Auctions {} => to_json_binary(&query_auctions(deps)?)?,
     };
 
     Ok(response)

@@ -1,8 +1,9 @@
-use crate::contract::{instantiate, query};
+use crate::contract::instantiate;
+use crate::query::query_config;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{from_json, Addr};
-use tracks_auction_api::api::{Config, ConfigResponse};
-use tracks_auction_api::msg::{InstantiateMsg, QueryMsg};
+use cosmwasm_std::Addr;
+use tracks_auction_api::api::Config;
+use tracks_auction_api::msg::InstantiateMsg;
 
 const ADMIN: &str = "admin";
 
@@ -22,8 +23,7 @@ fn instantiate_stores_config() -> anyhow::Result<()> {
         },
     )?;
 
-    let response: ConfigResponse =
-        from_json(query(deps.as_ref(), env.clone(), QueryMsg::Config {})?)?;
+    let response = query_config(deps.as_ref())?;
 
     assert_eq!(
         response.config,

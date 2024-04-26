@@ -10,6 +10,7 @@ use tracks_auction_api::api::{AuctionsResponse, TrackAuction};
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::QueryMsg::Auctions;
 
+// TODO: this is duplicated by unit tests - probably remove
 #[test]
 fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Result<()> {
     let mut app = App::default();
@@ -58,6 +59,7 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
     Ok(())
 }
 
+// TODO: this is duplicated by unit tests, and should probably expand in scope to keep making sense here too
 #[test]
 fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     let mut app = App::default();
@@ -107,7 +109,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     assert_eq!(
         response.auctions,
         vec![TrackAuction {
-            track_nft_contract: cw721_tracks.clone(),
+            submitter: USER1.into_addr(),
             track_token_id: track_token_id.to_string(),
             minimum_bid_amount: 4u128.into(),
         }]

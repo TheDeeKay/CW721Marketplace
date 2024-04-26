@@ -8,7 +8,9 @@ pub struct Config {
 
 #[cw_serde]
 pub struct TrackAuction {
-    pub track_nft_contract: Addr,
+    /// The address that submitted this auction. This will be the address that receives the
+    /// funds, or the NFT (if the auction fails).
+    pub submitter: Addr,
     pub track_token_id: String,
     pub minimum_bid_amount: Uint128,
 }
