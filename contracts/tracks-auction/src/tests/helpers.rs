@@ -1,7 +1,8 @@
-use crate::contract::receive_nft;
+use crate::contract::{bid, receive_nft};
 use cosmwasm_std::testing::mock_info;
-use cosmwasm_std::{to_json_binary, DepsMut, Env, Response};
+use cosmwasm_std::{to_json_binary, Coin, DepsMut, Env, Response};
 use cw721::Cw721ReceiveMsg;
+use tracks_auction_api::api::AuctionId;
 use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 
@@ -38,4 +39,18 @@ pub fn create_test_auction(
             })?,
         },
     )
+}
+
+pub fn test_bid(
+    deps: DepsMut,
+    env: Env,
+    nft_contract: &str,
+    auction_id: AuctionId,
+    bid_funds: &Vec<Coin>,
+) -> AuctionResult<Response> {
+    bid(deps, env, mock_info(nft_contract, bid_funds), auction_id)
+}
+
+pub fn no_funds() -> Vec<Coin> {
+    vec![]
 }

@@ -1,5 +1,7 @@
-use crate::contract::{bid, instantiate};
-use crate::tests::helpers::{create_test_auction, ADMIN, NFT_ADDR, TOKEN1, USER1};
+use crate::contract::instantiate;
+use crate::tests::helpers::{
+    create_test_auction, no_funds, test_bid, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
+};
 use cosmwasm_std::coins;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use tracks_auction_api::api::PriceAsset;
@@ -17,13 +19,13 @@ fn bid_with_no_asset_fails() -> anyhow::Result<()> {
         mock_info(ADMIN, &vec![]),
         InstantiateMsg {
             whitelisted_nft: NFT_ADDR.to_string(),
-            price_asset: PriceAsset::native("uandr"),
+            price_asset: PriceAsset::native(UANDR),
         },
     )?;
 
     create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
 
-    let result = bid(deps.as_mut(), env.clone(), mock_info(NFT_ADDR, &vec![]), 0);
+    let result = test_bid(deps.as_mut(), env.clone(), NFT_ADDR, 0, &no_funds());
 
     assert_eq!(result, Err(NoBidFundsSupplied));
 
@@ -41,18 +43,13 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
         mock_info(ADMIN, &vec![]),
         InstantiateMsg {
             whitelisted_nft: NFT_ADDR.to_string(),
-            price_asset: PriceAsset::native("uandr"),
+            price_asset: PriceAsset::native(UANDR),
         },
     )?;
 
     create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
 
-    let result = bid(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(NFT_ADDR, &coins(5, "uandr")),
-        2,
-    );
+    let result = test_bid(deps.as_mut(), env.clone(), NFT_ADDR, 2, &coins(5, UANDR));
 
     assert_eq!(result, Err(AuctionIdNotFound));
 
