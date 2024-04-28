@@ -1,29 +1,19 @@
-use crate::contract::instantiate;
 use crate::query::query_auctions;
 use crate::tests::helpers::{
-    create_test_auction, ADMIN, NFT_ADDR, NFT_ADDR2, TOKEN1, UANDR, USER1,
+    create_test_auction, instantiate_with_native_price_asset, ADMIN, NFT_ADDR, NFT_ADDR2, TOKEN1,
+    UANDR, UATOM, USER1,
 };
-use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::Addr;
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
-use tracks_auction_api::msg::InstantiateMsg;
-use PriceAsset::Native;
 
 #[test]
 fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    instantiate(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(ADMIN, &vec![]),
-        InstantiateMsg {
-            whitelisted_nft: NFT_ADDR.to_string(),
-            price_asset: PriceAsset::native(UANDR),
-        },
-    )?;
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
     let result = create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR2, TOKEN1, ADMIN, 0);
 
@@ -37,17 +27,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    instantiate(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(ADMIN, &vec![]),
-        InstantiateMsg {
-            whitelisted_nft: NFT_ADDR.to_string(),
-            price_asset: Native {
-                denom: "uatom".to_string(),
-            },
-        },
-    )?;
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UATOM)?;
 
     let track_token_id = "first_track";
 

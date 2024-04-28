@@ -1,10 +1,8 @@
-use crate::contract::instantiate;
 use crate::query::query_config;
-use crate::tests::helpers::{ADMIN, UATOM};
-use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+use crate::tests::helpers::{instantiate_with_native_price_asset, ADMIN, UATOM};
+use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::Addr;
 use tracks_auction_api::api::{Config, PriceAsset};
-use tracks_auction_api::msg::InstantiateMsg;
 
 #[test]
 fn instantiate_stores_config() -> anyhow::Result<()> {
@@ -13,15 +11,7 @@ fn instantiate_stores_config() -> anyhow::Result<()> {
 
     let whitelisted_nft = "nft_contract";
 
-    instantiate(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(ADMIN, &vec![]),
-        InstantiateMsg {
-            whitelisted_nft: whitelisted_nft.to_string(),
-            price_asset: PriceAsset::native(UATOM),
-        },
-    )?;
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, whitelisted_nft, UATOM)?;
 
     let response = query_config(deps.as_ref())?;
 

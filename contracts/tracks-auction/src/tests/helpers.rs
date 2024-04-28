@@ -1,10 +1,11 @@
-use crate::contract::{bid, receive_nft};
+use crate::contract::{bid, instantiate, receive_nft};
 use cosmwasm_std::testing::mock_info;
 use cosmwasm_std::{to_json_binary, Coin, DepsMut, Env, Response};
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::AuctionId;
+use tracks_auction_api::api::{AuctionId, PriceAsset};
 use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
+use tracks_auction_api::msg::InstantiateMsg;
 
 // TODO: maybe extract to a separate test-general package because every package uses them
 pub const ADMIN: &str = "admin";
@@ -18,6 +19,40 @@ pub const UANDR: &str = "uandr";
 pub const UATOM: &str = "uatom";
 
 pub const TOKEN1: &str = "1";
+
+pub fn test_instantiate(
+    deps: DepsMut,
+    env: Env,
+    instantiator: &str,
+    whitelisted_nft: &str,
+    price_asset: PriceAsset,
+) -> AuctionResult<Response> {
+    instantiate(
+        deps,
+        env,
+        mock_info(instantiator, &vec![]),
+        InstantiateMsg {
+            whitelisted_nft: whitelisted_nft.to_string(),
+            price_asset,
+        },
+    )
+}
+
+pub fn instantiate_with_native_price_asset(
+    deps: DepsMut,
+    env: Env,
+    instantiator: &str,
+    whitelisted_nft: &str,
+    native_denom: &str,
+) -> AuctionResult<Response> {
+    test_instantiate(
+        deps,
+        env,
+        instantiator,
+        whitelisted_nft,
+        PriceAsset::native(native_denom),
+    )
+}
 
 pub fn create_test_auction(
     deps: DepsMut,
