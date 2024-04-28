@@ -1,13 +1,10 @@
 use crate::contract::instantiate;
 use crate::query::query_config;
+use crate::tests::helpers::{ADMIN, UATOM};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::Addr;
 use tracks_auction_api::api::{Config, PriceAsset};
 use tracks_auction_api::msg::InstantiateMsg;
-
-const ADMIN: &str = "admin";
-
-const UATOM: &str = "uatom";
 
 #[test]
 fn instantiate_stores_config() -> anyhow::Result<()> {

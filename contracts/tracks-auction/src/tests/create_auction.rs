@@ -1,22 +1,14 @@
 use crate::contract::instantiate;
 use crate::query::query_auctions;
-use crate::tests::helpers::create_test_auction;
+use crate::tests::helpers::{
+    create_test_auction, ADMIN, NFT_ADDR, NFT_ADDR2, TOKEN1, UANDR, USER1,
+};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::Addr;
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
 use tracks_auction_api::msg::InstantiateMsg;
 use PriceAsset::Native;
-
-// TODO: those consts repeat in every file, extract them somewhere (maybe even like a separate package because every package uses them)
-const ADMIN: &str = "admin";
-
-const USER1: &str = "user1";
-
-const NFT_ADDR: &str = "nft_contract_addr";
-const NFT_ADDR2: &str = "another_nft_contract_addr";
-
-const UANDR: &str = "uandr";
 
 #[test]
 fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
@@ -33,7 +25,7 @@ fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
         },
     )?;
 
-    let result = create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR2, "1", ADMIN, 0);
+    let result = create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR2, TOKEN1, ADMIN, 0);
 
     assert_eq!(result, Err(Cw721NotWhitelisted));
 

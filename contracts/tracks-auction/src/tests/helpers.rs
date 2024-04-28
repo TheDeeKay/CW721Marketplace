@@ -5,6 +5,19 @@ use cw721::Cw721ReceiveMsg;
 use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 
+// TODO: maybe extract to a separate test-general package because every package uses them
+pub const ADMIN: &str = "admin";
+
+pub const USER1: &str = "user1";
+
+pub const NFT_ADDR: &str = "nft_contract_addr";
+pub const NFT_ADDR2: &str = "another_nft_contract_addr";
+
+pub const UANDR: &str = "uandr";
+pub const UATOM: &str = "uatom";
+
+pub const TOKEN1: &str = "1";
+
 pub fn create_test_auction(
     deps: DepsMut,
     env: Env,
