@@ -19,4 +19,7 @@ pub enum AuctionError {
 
     #[error("Trying to send assets not necessary for the bid")]
     UnnecessaryAssetsForBid,
+
+    #[error("Supplied funds do not match the attempted bid")]
+    InsufficientFundsForBid,
 }

@@ -81,9 +81,16 @@ pub fn test_bid(
     env: Env,
     nft_contract: &str,
     auction_id: AuctionId,
+    bid_amount: u8,
     bid_funds: &Vec<Coin>,
 ) -> AuctionResult<Response> {
-    bid(deps, env, mock_info(nft_contract, bid_funds), auction_id)
+    bid(
+        deps,
+        env,
+        mock_info(nft_contract, bid_funds),
+        auction_id,
+        bid_amount.into(),
+    )
 }
 
 pub fn no_funds() -> Vec<Coin> {

@@ -3,12 +3,13 @@ use crate::config::{load_config, save_config};
 use crate::query::{query_auctions, query_config};
 use cosmwasm_std::{
     entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError,
+    StdError, Uint128,
 };
 use cw721::Cw721ReceiveMsg;
 use tracks_auction_api::api::{AuctionId, Config};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, Cw721NotWhitelisted, NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionIdNotFound, Cw721NotWhitelisted, InsufficientFundsForBid, NoBidFundsSupplied,
+    UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -49,7 +50,10 @@ pub fn execute(
 ) -> AuctionResult<Response> {
     match msg {
         ReceiveNft(nft_msg) => receive_nft(deps, env, info, nft_msg),
-        Bid { auction_id } => bid(deps, env, info, auction_id),
+        Bid {
+            auction_id,
+            bid_amount,
+        } => bid(deps, env, info, auction_id, bid_amount),
     }
 }
 
@@ -83,16 +87,24 @@ pub fn bid(
     _env: Env,
     info: MessageInfo,
     auction_id: AuctionId,
+    _bid_amount: Uint128, // TODO: use (provoke by tests)
 ) -> AuctionResult<Response> {
     // TODO: refactor
-    if info.funds.len() > 1 {
-        return Err(UnnecessaryAssetsForBid);
-    }
 
     let auction = load_auction(deps.storage, auction_id)?;
+
     match auction {
         None => Err(AuctionIdNotFound),
-        Some(_) => Err(NoBidFundsSupplied),
+        Some(_) => {
+            if info.funds.len() > 1 {
+                return Err(UnnecessaryAssetsForBid);
+            }
+            if let [_] = &info.funds[..] {
+                Err(InsufficientFundsForBid)
+            } else {
+                Err(NoBidFundsSupplied)
+            }
+        }
     }
 }
 
