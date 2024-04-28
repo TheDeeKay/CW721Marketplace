@@ -1,10 +1,12 @@
 use crate::tests::helpers::{
     create_test_auction, instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR,
-    TOKEN1, UANDR, USER1,
+    TOKEN1, UANDR, UATOM, USER1,
 };
-use cosmwasm_std::coins;
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use tracks_auction_api::error::AuctionError::{AuctionIdNotFound, NoBidFundsSupplied};
+use cosmwasm_std::{coin, coins};
+use tracks_auction_api::error::AuctionError::{
+    AuctionIdNotFound, NoBidFundsSupplied, UnnecessaryAssetsForBid,
+};
 
 #[test]
 fn bid_with_no_asset_fails() -> anyhow::Result<()> {
@@ -38,4 +40,24 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: consider cases such as sending multiple asset types for a bid, or sending more than attempting to bid
+#[test]
+fn bid_with_multiple_native_assets_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    let result = test_bid(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        2,
+        &vec![coin(5, UANDR), coin(1, UATOM)],
+    );
+
+    assert_eq!(result, Err(UnnecessaryAssetsForBid));
+
+    Ok(())
+}

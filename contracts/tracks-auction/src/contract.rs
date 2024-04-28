@@ -8,7 +8,7 @@ use cosmwasm_std::{
 use cw721::Cw721ReceiveMsg;
 use tracks_auction_api::api::{AuctionId, Config};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, Cw721NotWhitelisted, NoBidFundsSupplied,
+    AuctionIdNotFound, Cw721NotWhitelisted, NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -81,9 +81,14 @@ pub fn receive_nft(
 pub fn bid(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     auction_id: AuctionId,
 ) -> AuctionResult<Response> {
+    // TODO: refactor
+    if info.funds.len() > 1 {
+        return Err(UnnecessaryAssetsForBid);
+    }
+
     let auction = load_auction(deps.storage, auction_id)?;
     match auction {
         None => Err(AuctionIdNotFound),

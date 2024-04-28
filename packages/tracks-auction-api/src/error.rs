@@ -16,4 +16,7 @@ pub enum AuctionError {
 
     #[error("No auction with given ID was found")]
     AuctionIdNotFound,
+
+    #[error("Trying to send assets not necessary for the bid")]
+    UnnecessaryAssetsForBid,
 }
