@@ -1,10 +1,9 @@
-use crate::contract::{bid, instantiate, receive_nft};
+use crate::contract::{bid, instantiate};
+use crate::tests::helpers::create_test_auction;
+use cosmwasm_std::coins;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{coins, to_json_binary};
-use cw721::Cw721ReceiveMsg;
 use tracks_auction_api::api::PriceAsset;
 use tracks_auction_api::error::AuctionError::{AuctionIdNotFound, NoBidFundsSupplied};
-use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::InstantiateMsg;
 
 // TODO: those consts repeat in every file, extract them somewhere (maybe even like a separate package because every package uses them)
@@ -29,18 +28,7 @@ fn bid_with_no_asset_fails() -> anyhow::Result<()> {
         },
     )?;
 
-    receive_nft(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(NFT_ADDR, &vec![]),
-        Cw721ReceiveMsg {
-            sender: USER1.to_string(),
-            token_id: "1".to_string(),
-            msg: to_json_binary(&CreateAuction {
-                minimum_bid_amount: 5u8.into(),
-            })?,
-        },
-    )?;
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, "1", USER1, 5)?;
 
     let result = bid(deps.as_mut(), env.clone(), mock_info(NFT_ADDR, &vec![]), 0);
 
@@ -64,18 +52,7 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
         },
     )?;
 
-    receive_nft(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(NFT_ADDR, &vec![]),
-        Cw721ReceiveMsg {
-            sender: USER1.to_string(),
-            token_id: "1".to_string(),
-            msg: to_json_binary(&CreateAuction {
-                minimum_bid_amount: 5u8.into(),
-            })?,
-        },
-    )?;
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, "1", USER1, 5)?;
 
     let result = bid(
         deps.as_mut(),

@@ -1,13 +1,11 @@
-use crate::contract::{execute, instantiate};
+use crate::contract::instantiate;
 use crate::query::query_auctions;
+use crate::tests::helpers::create_test_auction;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{to_json_binary, Addr, Uint128};
-use cw721::Cw721ReceiveMsg;
+use cosmwasm_std::Addr;
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
-use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg};
-use Cw721HookMsg::CreateAuction;
-use ExecuteMsg::ReceiveNft;
+use tracks_auction_api::msg::InstantiateMsg;
 use PriceAsset::Native;
 
 // TODO: those consts repeat in every file, extract them somewhere (maybe even like a separate package because every package uses them)
@@ -35,18 +33,7 @@ fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
         },
     )?;
 
-    let result = execute(
-        deps.as_mut(),
-        env,
-        mock_info(NFT_ADDR2, &vec![]),
-        ReceiveNft(Cw721ReceiveMsg {
-            sender: ADMIN.to_string(),
-            token_id: "1".to_string(),
-            msg: to_json_binary(&CreateAuction {
-                minimum_bid_amount: Uint128::zero(),
-            })?,
-        }),
-    );
+    let result = create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR2, "1", ADMIN, 0);
 
     assert_eq!(result, Err(Cw721NotWhitelisted));
 
@@ -72,17 +59,13 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
 
     let track_token_id = "first_track";
 
-    execute(
+    create_test_auction(
         deps.as_mut(),
         env.clone(),
-        mock_info(NFT_ADDR, &vec![]),
-        ReceiveNft(Cw721ReceiveMsg {
-            sender: USER1.to_string(),
-            token_id: track_token_id.to_string(),
-            msg: to_json_binary(&CreateAuction {
-                minimum_bid_amount: 4u8.into(),
-            })?,
-        }),
+        NFT_ADDR,
+        track_token_id,
+        USER1,
+        4,
     )?;
 
     let response = query_auctions(deps.as_ref())?;
