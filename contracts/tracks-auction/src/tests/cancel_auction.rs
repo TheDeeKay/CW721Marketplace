@@ -7,7 +7,7 @@ use cosmwasm_std::coins;
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cw_utils::Duration::Time;
 use tracks_auction_api::error::AuctionError::{
-    AuctionAlreadyResolved, AuctionExpired, Unauthorized,
+    AuctionCanceled, AuctionExpired, AuctionResolved, Unauthorized,
 };
 
 #[test]
@@ -83,7 +83,35 @@ fn cancel_auction_on_resolved_auction_fails() -> anyhow::Result<()> {
 
     let result = test_cancel_auction(deps.as_mut(), env_after_expiration, USER1, 0);
 
-    assert_eq!(result, Err(AuctionAlreadyResolved));
+    assert_eq!(result, Err(AuctionResolved));
+
+    Ok(())
+}
+
+#[test]
+fn cancel_auction_on_canceled_auction_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Time(20),
+        5,
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
+
+    test_cancel_auction(deps.as_mut(), env.clone(), USER1, 0)?;
+
+    let result = test_cancel_auction(deps.as_mut(), env, USER1, 0);
+
+    assert_eq!(result, Err(AuctionCanceled));
 
     Ok(())
 }

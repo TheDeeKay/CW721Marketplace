@@ -116,7 +116,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
             created_at: app.block_info(),
             duration,
             id: 0,
-            submitter: USER1.into_addr(),
+            creator: USER1.into_addr(),
             nft_contract: cw721_tracks,
             track_token_id: track_token_id.to_string(),
             minimum_bid_amount: 4u128.into(),

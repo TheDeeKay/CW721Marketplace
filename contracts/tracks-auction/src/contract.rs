@@ -9,10 +9,10 @@ use cw721::Cw721ExecuteMsg::TransferNft;
 use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
-use tracks_auction_api::api::AuctionStatus::Resolved;
+use tracks_auction_api::api::AuctionStatus::{Canceled, Resolved};
 use tracks_auction_api::api::{AuctionId, AuctionStatus, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionAlreadyResolved, AuctionExpired, AuctionIdNotFound, AuctionStillInProgress,
+    AuctionCanceled, AuctionExpired, AuctionIdNotFound, AuctionResolved, AuctionStillInProgress,
     BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded, Cw721NotWhitelisted,
     InsufficientFundsForBid, InvalidAuctionDuration, NoBidFundsSupplied, Unauthorized,
     UnnecessaryAssetsForBid,
@@ -174,12 +174,15 @@ pub fn resolve_auction(
     }
 
     if auction.status == Resolved {
-        return Err(AuctionAlreadyResolved);
+        return Err(AuctionResolved);
     }
 
     match auction.status {
         Resolved => {
-            return Err(AuctionAlreadyResolved);
+            return Err(AuctionResolved);
+        }
+        Canceled => {
+            return Err(AuctionCanceled);
         }
         Active => {
             // no-op
@@ -205,7 +208,7 @@ pub fn resolve_auction(
             // send funds to the auction creator
             let award_bid_submsg = SubMsg::new(
                 Asset::new(bid.asset.to_asset_info(), bid.amount)
-                    .transfer_msg(auction.submitter.to_string())?,
+                    .transfer_msg(auction.creator.to_string())?,
             );
 
             Ok(base_response
@@ -217,7 +220,7 @@ pub fn resolve_auction(
             let return_nft_submsg = SubMsg::new(wasm_execute(
                 auction.nft_contract.to_string(),
                 &TransferNft {
-                    recipient: auction.submitter.to_string(),
+                    recipient: auction.creator.to_string(),
                     token_id: auction.track_token_id,
                 },
                 vec![],
@@ -230,15 +233,18 @@ pub fn resolve_auction(
 pub fn cancel_auction(
     deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     auction_id: AuctionId,
 ) -> AuctionResult<Response> {
     let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
 
+    if auction.creator != info.sender {
+        return Err(Unauthorized);
+    }
+
     match auction.status {
-        Resolved => {
-            return Err(AuctionAlreadyResolved);
-        }
+        Resolved => return Err(AuctionResolved),
+        Canceled => return Err(AuctionCanceled),
         Active => {
             // no-op
         }
@@ -248,8 +254,9 @@ pub fn cancel_auction(
         return Err(AuctionExpired);
     }
 
-    Err(Unauthorized)
-    // Ok(Response::new()) // TODO: add attributes
+    update_auction_status(deps.storage, auction_id, Canceled)?;
+
+    Ok(Response::new()) // TODO: add attributes
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

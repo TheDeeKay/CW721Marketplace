@@ -18,6 +18,7 @@ pub struct Config {
 pub enum AuctionStatus {
     Active,
     Resolved,
+    Canceled,
 }
 
 #[cw_serde]
@@ -37,12 +38,16 @@ pub struct TrackAuction {
     pub id: AuctionId,
     /// The address that submitted this auction. This will be the address that receives the
     /// funds, or the NFT (if the auction fails).
-    pub submitter: Addr,
+    pub creator: Addr,
+    /// NFT contract to which the token representing this track belongs.
     pub nft_contract: Addr,
     /// ID of the NFT token representing this track.
     pub track_token_id: String,
+    /// Minimum initial bid that will be accepted.
     pub minimum_bid_amount: Uint128,
+    /// Asset in which the price is denominated.
     pub price_asset: PriceAsset,
+    /// Last (highest) bid, if any.
     pub active_bid: Option<Bid>,
 }
 

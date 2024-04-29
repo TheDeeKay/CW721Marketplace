@@ -2,7 +2,8 @@ use crate::contract::resolve_auction;
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,
-    test_bid, test_resolve_auction, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1, USER2,
+    test_bid, test_cancel_auction, test_resolve_auction, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
+    USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{coins, wasm_execute, SubMsg};
@@ -12,7 +13,7 @@ use cw_utils::Duration;
 use cw_utils::Duration::Height;
 use tracks_auction_api::api::AuctionStatus::Resolved;
 use tracks_auction_api::error::AuctionError::{
-    AuctionAlreadyResolved, AuctionIdNotFound, AuctionStillInProgress,
+    AuctionCanceled, AuctionIdNotFound, AuctionResolved, AuctionStillInProgress,
 };
 use Duration::Time;
 
@@ -213,7 +214,37 @@ fn resolve_auction_that_was_resolved_fails() -> anyhow::Result<()> {
 
     let result = test_resolve_auction(deps.as_mut(), after_ending_env.clone(), USER1, 0);
 
-    assert_eq!(result, Err(AuctionAlreadyResolved));
+    assert_eq!(result, Err(AuctionResolved));
+
+    Ok(())
+}
+
+#[test]
+fn resolve_auction_that_was_canceled_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Height(15),
+        5,
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 6, &coins(6, UANDR))?;
+
+    test_cancel_auction(deps.as_mut(), env.clone(), USER1, 0)?;
+
+    let after_ending_env = after_height(&env, 16);
+
+    let result = test_resolve_auction(deps.as_mut(), after_ending_env.clone(), USER1, 0);
+
+    assert_eq!(result, Err(AuctionCanceled));
 
     Ok(())
 }

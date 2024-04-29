@@ -47,7 +47,10 @@ pub enum AuctionError {
     AuctionStillInProgress,
 
     #[error("Auction was already resolved")]
-    AuctionAlreadyResolved,
+    AuctionResolved,
+
+    #[error("Auction was already canceled")]
+    AuctionCanceled,
 
     #[error("Auction has already expired")]
     AuctionExpired,
