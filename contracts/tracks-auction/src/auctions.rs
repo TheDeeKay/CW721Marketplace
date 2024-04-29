@@ -23,7 +23,7 @@ pub fn save_new_auction(
     nft_contract: Addr,
     track_token_id: String,
     minimum_bid_amount: Uint128,
-) -> AuctionResult<()> {
+) -> AuctionResult<AuctionId> {
     let next_auction_id = NEXT_AUCTION_ID.may_load(storage)?.unwrap_or_default();
     NEXT_AUCTION_ID.save(storage, &(next_auction_id + 1))?;
 
@@ -46,7 +46,7 @@ pub fn save_new_auction(
         },
     )?;
 
-    Ok(())
+    Ok(next_auction_id)
 }
 
 /// Updates active bid on the given auction ID.

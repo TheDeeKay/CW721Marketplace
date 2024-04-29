@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     NFT_ADDR2, TOKEN1, UANDR, UATOM, USER1,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{Addr, BlockInfo, Env, Timestamp};
+use cosmwasm_std::{attr, Addr, BlockInfo, Env, Timestamp};
 use cw_utils::Duration;
 use cw_utils::Duration::Height;
 use tracks_auction_api::api::AuctionStatus::Active;
@@ -97,7 +97,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     let track_token_id = "first_track";
     let duration = Time(24);
 
-    create_test_auction(
+    let response = create_test_auction(
         deps.as_mut(),
         env.clone(),
         NFT_ADDR,
@@ -106,6 +106,11 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         duration.clone(),
         4,
     )?;
+
+    assert_eq!(
+        response.attributes,
+        vec![attr("action", "create_auction"), attr("auction_id", "0"),],
+    );
 
     let expected_auction = TrackAuction {
         status: Active,

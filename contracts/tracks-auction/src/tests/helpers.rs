@@ -9,7 +9,6 @@ use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::InstantiateMsg;
 
-// TODO: maybe extract to a separate test-general package because every package uses them
 pub const ADMIN: &str = "admin";
 
 pub const USER1: &str = "user1";

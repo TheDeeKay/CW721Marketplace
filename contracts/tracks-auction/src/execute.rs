@@ -40,7 +40,7 @@ pub fn receive_nft(
                 return Err(InvalidAuctionDuration);
             }
             let submitter = deps.api.addr_validate(&msg.sender)?;
-            save_new_auction(
+            let id = save_new_auction(
                 deps.storage,
                 env.block,
                 duration,
@@ -49,7 +49,9 @@ pub fn receive_nft(
                 msg.token_id,
                 minimum_bid_amount,
             )?;
-            Ok(Response::new()) // TODO: add attributes
+            Ok(Response::new()
+                .add_attribute("action", "create_auction")
+                .add_attribute("auction_id", id.to_string()))
         }
         _ => Err(StdError::generic_err("unknown NFT receive hook message").into()),
     }
