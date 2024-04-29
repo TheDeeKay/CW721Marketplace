@@ -30,7 +30,7 @@ pub fn instantiate(
 
     let config = Config {
         whitelisted_nft: nft_addr.clone(),
-        price_asset: msg.price_asset,
+        price_asset: msg.price_asset.check(deps.api)?,
     };
     save_config(deps.storage, &config)?;
 

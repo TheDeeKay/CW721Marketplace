@@ -88,6 +88,20 @@ impl PriceAssetUnchecked {
     }
 }
 
+impl PriceAssetUnchecked {
+    pub fn native(denom: impl Into<String>) -> Self {
+        PriceAssetUnchecked::Native {
+            denom: denom.into(),
+        }
+    }
+
+    pub fn cw20(contract: impl Into<String>) -> Self {
+        PriceAssetUnchecked::Cw20 {
+            contract: contract.into(),
+        }
+    }
+}
+
 #[cw_serde]
 pub enum PriceAsset {
     Native { denom: String },

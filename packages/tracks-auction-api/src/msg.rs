@@ -1,4 +1,6 @@
-use crate::api::{AuctionId, AuctionResponse, AuctionsResponse, ConfigResponse, PriceAsset};
+use crate::api::{
+    AuctionId, AuctionResponse, AuctionsResponse, ConfigResponse, PriceAssetUnchecked,
+};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
 use cw20::Cw20ReceiveMsg;
@@ -10,7 +12,7 @@ pub struct InstantiateMsg {
     /// NFT contract whose tokens are allowed in this auction contract.
     pub whitelisted_nft: String,
     /// Asset in which all the auctions created will be priced.
-    pub price_asset: PriceAsset,
+    pub price_asset: PriceAssetUnchecked,
 }
 
 #[cw_serde]

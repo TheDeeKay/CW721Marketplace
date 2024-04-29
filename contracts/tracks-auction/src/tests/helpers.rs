@@ -9,7 +9,7 @@ use cw721::Cw721ExecuteMsg::TransferNft;
 use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration;
-use tracks_auction_api::api::{AuctionId, PriceAsset};
+use tracks_auction_api::api::{AuctionId, PriceAssetUnchecked};
 use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::{Cw20HookMsg, InstantiateMsg};
@@ -36,7 +36,7 @@ pub fn test_instantiate(
     env: Env,
     instantiator: &str,
     whitelisted_nft: &str,
-    price_asset: PriceAsset,
+    price_asset: PriceAssetUnchecked,
 ) -> AuctionResult<Response> {
     instantiate(
         deps,
@@ -61,7 +61,7 @@ pub fn instantiate_with_native_price_asset(
         env,
         instantiator,
         whitelisted_nft,
-        PriceAsset::native(native_denom),
+        PriceAssetUnchecked::native(native_denom),
     )
 }
 
@@ -77,7 +77,7 @@ pub fn instantiate_with_cw20_price_asset(
         env,
         instantiator,
         whitelisted_nft,
-        PriceAsset::cw20(Addr::unchecked(cw20_addr)), // TODO: gotta supply unchecked instead of checked
+        PriceAssetUnchecked::cw20(cw20_addr),
     )
 }
 

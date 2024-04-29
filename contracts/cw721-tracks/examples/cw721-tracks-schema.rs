@@ -1,11 +1,14 @@
 use cosmwasm_schema::schemars::schema_for;
 use cosmwasm_schema::{export_schema, remove_schemas};
+use cosmwasm_std::Empty;
+use cw721::{
+    AllNftInfoResponse, ApprovalResponse, ApprovalsResponse, ContractInfoResponse, NftInfoResponse,
+    NumTokensResponse, OperatorResponse, OperatorsResponse, OwnerOfResponse, TokensResponse,
+};
+use cw721_base::MinterResponse;
 use cw721_tracks_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use std::env::current_dir;
 use std::fs::create_dir_all;
-use cosmwasm_std::Empty;
-use cw721::{AllNftInfoResponse, ApprovalResponse, ApprovalsResponse, ContractInfoResponse, NftInfoResponse, NumTokensResponse, OperatorResponse, OperatorsResponse, OwnerOfResponse, TokensResponse};
-use cw721_base::MinterResponse;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
