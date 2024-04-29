@@ -1,11 +1,11 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, default_duration,
-    instantiate_with_cw20_price_asset, test_cw20_bid, ADMIN, CW20_ADDR, CW20_ADDR2, NFT_ADDR,
-    TOKEN1, USER1, USER2, USER3,
+    instantiate_with_cw20_price_asset, test_bid, test_cw20_bid, ADMIN, CW20_ADDR, CW20_ADDR2,
+    NFT_ADDR, TOKEN1, UANDR, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{attr, Addr, BlockInfo, Env, SubMsg, Timestamp};
+use cosmwasm_std::{attr, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::{Bid, PriceAsset};
@@ -16,10 +16,8 @@ use tracks_auction_api::error::AuctionError::{
 
 // TODO: those tests are essentially duplicates of native bids, abstract away to cut down on code duplication
 
-// TODO: test what happens when sending denom to bid when price asset is cw20 (and vice versa)
-
 #[test]
-fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
+fn bid_cw20_on_non_existent_auction_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -52,7 +50,7 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
+fn bid_cw20_with_insufficient_funds_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -87,7 +85,7 @@ fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_less_than_minimum_bid_fails() -> anyhow::Result<()> {
+fn bid_cw20_less_than_minimum_bid_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -122,7 +120,7 @@ fn bid_less_than_minimum_bid_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_wrong_asset_fails() -> anyhow::Result<()> {
+fn bid_cw20_wrong_asset_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -149,7 +147,31 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
+fn bid_cw20_native_asset_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_cw20_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, CW20_ADDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
+
+    let result = test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR));
+
+    assert_eq!(result, Err(BidWrongAsset));
+
+    Ok(())
+}
+
+#[test]
+fn bid_cw20_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
     let current_block = BlockInfo {
         height: 12345,
         time: Timestamp::from_seconds(23456),
@@ -201,7 +223,7 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::Result<()> {
+fn bid_cw20_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::Result<()> {
     let current_block = BlockInfo {
         height: 12345,
         time: Timestamp::from_seconds(23456),
@@ -256,7 +278,7 @@ fn bid_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::R
 }
 
 #[test]
-fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
+fn bid_cw20_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -301,7 +323,7 @@ fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<()> {
+fn bid_cw20_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -372,7 +394,7 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
 }
 
 #[test]
-fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
+fn bid_cw20_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -404,7 +426,7 @@ fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bid_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
+fn bid_cw20_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 

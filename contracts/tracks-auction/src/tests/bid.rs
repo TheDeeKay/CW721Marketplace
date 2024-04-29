@@ -1,8 +1,8 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, default_duration,
-    instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR, TOKEN1, UANDR, UATOM,
-    USER1, USER2, USER3,
+    instantiate_with_native_price_asset, no_funds, test_bid, test_cw20_bid, ADMIN, CW20_ADDR,
+    NFT_ADDR, TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{attr, coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
@@ -197,6 +197,30 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
         5,
         &coins(5, bid_denom),
     );
+
+    assert_eq!(result, Err(BidWrongAsset));
+
+    Ok(())
+}
+
+#[test]
+fn bid_cw20_asset_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
+
+    let result = test_cw20_bid(deps.as_mut(), env.clone(), USER2, 0, 5, 5, CW20_ADDR);
 
     assert_eq!(result, Err(BidWrongAsset));
 
