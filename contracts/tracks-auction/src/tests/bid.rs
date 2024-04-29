@@ -5,7 +5,8 @@ use crate::tests::helpers::{
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{coin, coins};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, InsufficientFundsForBid,
+    NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 
 // TODO: go through expected errors and modify them to (usually) be BidBelowMinimum or similar
@@ -81,4 +82,36 @@ fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: next is bid under minimum
+#[test]
+fn bid_less_than_minimum_bid() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    let result = test_bid(deps.as_mut(), env.clone(), NFT_ADDR, 0, 5, &coins(5, UANDR));
+
+    assert_eq!(result, Err(BidLowerThanMinimum));
+
+    Ok(())
+}
+
+#[test]
+fn bid_wrong_asset() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    let result = test_bid(deps.as_mut(), env.clone(), NFT_ADDR, 0, 5, &coins(5, UATOM));
+
+    assert_eq!(result, Err(BidWrongAsset));
+
+    Ok(())
+}
+
+// TODO: next is bid with the exact funds but wrong asset

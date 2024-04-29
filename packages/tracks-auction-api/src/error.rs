@@ -11,6 +11,7 @@ pub enum AuctionError {
     #[error("CW721 you're using is not whitelisted for auctions")]
     Cw721NotWhitelisted,
 
+    // TODO: consolidate all the errors regarding invalid bid funds here, they're unnecessarily wide
     #[error("Attempting to bid with no funds")]
     NoBidFundsSupplied,
 
@@ -22,4 +23,10 @@ pub enum AuctionError {
 
     #[error("Supplied funds do not match the attempted bid")]
     InsufficientFundsForBid,
+
+    #[error("Bid is lower than minimum required")]
+    BidLowerThanMinimum,
+
+    #[error("Attempting to bid using the wrong asset")]
+    BidWrongAsset,
 }

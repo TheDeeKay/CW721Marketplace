@@ -6,10 +6,10 @@ use cosmwasm_std::{
     StdError, Uint128,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{AuctionId, Config};
+use tracks_auction_api::api::{AuctionId, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, Cw721NotWhitelisted, InsufficientFundsForBid, NoBidFundsSupplied,
-    UnnecessaryAssetsForBid,
+    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, Cw721NotWhitelisted,
+    InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -87,7 +87,7 @@ pub fn bid(
     _env: Env,
     info: MessageInfo,
     auction_id: AuctionId,
-    _bid_amount: Uint128, // TODO: use (provoke by tests)
+    bid_amount: Uint128, // TODO: use (provoke by tests)
 ) -> AuctionResult<Response> {
     // TODO: refactor
 
@@ -96,13 +96,22 @@ pub fn bid(
     match auction {
         None => Err(AuctionIdNotFound),
         Some(_) => {
-            if info.funds.len() > 1 {
-                return Err(UnnecessaryAssetsForBid);
-            }
-            if let [_] = &info.funds[..] {
-                Err(InsufficientFundsForBid)
-            } else {
-                Err(NoBidFundsSupplied)
+            match &info.funds[..] {
+                [coin] => {
+                    // TODO: should we really accept more funds than specified?
+                    if coin.amount < bid_amount {
+                        Err(InsufficientFundsForBid)
+                    } else {
+                        let config = load_config(deps.storage)?;
+                        if config.price_asset != PriceAsset::native(&coin.denom) {
+                            Err(BidWrongAsset)
+                        } else {
+                            Err(BidLowerThanMinimum)
+                        }
+                    }
+                }
+                [] => Err(NoBidFundsSupplied),
+                _ => Err(UnnecessaryAssetsForBid),
             }
         }
     }
