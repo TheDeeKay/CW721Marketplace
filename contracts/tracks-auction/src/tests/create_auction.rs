@@ -127,3 +127,51 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn create_auction_increments_auction_ids() -> anyhow::Result<()> {
+    let current_block = BlockInfo {
+        height: 55214,
+        time: Timestamp::from_nanos(5521400000),
+        chain_id: mock_env().block.chain_id,
+    };
+
+    let mut deps = mock_dependencies();
+    let env = Env {
+        block: current_block.clone(),
+        ..mock_env()
+    };
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UATOM)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        "5",
+        USER1,
+        default_duration(),
+        4,
+    )?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        "6",
+        USER1,
+        default_duration(),
+        4,
+    )?;
+
+    assert_eq!(query_auction(deps.as_ref(), 0)?.auction.id, 0);
+
+    assert_eq!(query_auction(deps.as_ref(), 1)?.auction.id, 1);
+
+    let response = query_auctions(deps.as_ref())?;
+
+    assert_eq!(response.auctions[0].id, 0);
+    assert_eq!(response.auctions[1].id, 1);
+
+    Ok(())
+}

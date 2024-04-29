@@ -1,12 +1,13 @@
 use crate::config::load_config;
-use cosmwasm_std::{Addr, BlockInfo, Storage, Uint128};
-use cw_storage_plus::Map;
+use cosmwasm_std::Order::Ascending;
+use cosmwasm_std::{Addr, BlockInfo, StdResult, Storage, Uint128};
+use cw_storage_plus::{Item, Map};
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, Bid, TrackAuction};
 use tracks_auction_api::error::AuctionError::AuctionIdNotFound;
 use tracks_auction_api::error::AuctionResult;
 
-// const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
+const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
 
 const AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("auctions");
 
@@ -19,18 +20,18 @@ pub fn save_new_auction(
     minimum_bid_amount: Uint128,
 ) -> AuctionResult<()> {
     // TODO: provoke by tests
-    // let next_auction_id = NEXT_AUCTION_ID.may_load(storage)?.unwrap_or_default();
-    // NEXT_AUCTION_ID.save(storage, &(next_auction_id + 1)?;
+    let next_auction_id = NEXT_AUCTION_ID.may_load(storage)?.unwrap_or_default();
+    NEXT_AUCTION_ID.save(storage, &(next_auction_id + 1))?;
 
     let config = load_config(storage)?;
 
     AUCTIONS_MAP.save(
         storage,
-        0,
+        next_auction_id,
         &TrackAuction {
             created_at: current_block,
             duration,
-            id: 0, // TODO: provoke by tests
+            id: next_auction_id, // TODO: provoke by tests
             submitter,
             track_token_id,
             minimum_bid_amount,
@@ -68,11 +69,10 @@ pub fn update_active_bid(
 pub fn load_auctions(storage: &dyn Storage) -> AuctionResult<Vec<TrackAuction>> {
     // TODO: use limit and start_after
 
-    // TODO: use range here, provoke by tests
     Ok(AUCTIONS_MAP
-        .may_load(storage, 0)?
-        .into_iter()
-        .collect::<Vec<TrackAuction>>())
+        .range(storage, None, None, Ascending)
+        .map(|res| res.map(|(_, auction)| auction))
+        .collect::<StdResult<Vec<TrackAuction>>>()?)
 }
 
 pub fn load_auction(storage: &dyn Storage, id: AuctionId) -> AuctionResult<Option<TrackAuction>> {
