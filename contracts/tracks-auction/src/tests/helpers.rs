@@ -1,9 +1,13 @@
 use crate::contract::instantiate;
 use crate::execute::{bid, cancel_auction, receive_cw20, receive_nft, resolve_auction};
 use cosmwasm_std::testing::mock_info;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, DepsMut, Env, Response};
+use cosmwasm_std::{
+    to_json_binary, wasm_execute, Addr, BlockInfo, Coin, DepsMut, Env, Response, SubMsg,
+};
 use cw20::Cw20ReceiveMsg;
+use cw721::Cw721ExecuteMsg::TransferNft;
 use cw721::Cw721ReceiveMsg;
+use cw_asset::Asset;
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, PriceAsset};
 use tracks_auction_api::error::AuctionResult;
@@ -188,4 +192,31 @@ pub fn after_seconds(env: &Env, seconds: u64) -> Env {
         },
         ..env.clone()
     }
+}
+
+pub fn transfer_nft_msg(
+    nft_contract: &str,
+    recipient: &str,
+    token_id: &str,
+) -> anyhow::Result<SubMsg> {
+    Ok(SubMsg::new(wasm_execute(
+        nft_contract,
+        &TransferNft {
+            recipient: recipient.to_string(),
+            token_id: token_id.to_string(),
+        },
+        vec![],
+    )?))
+}
+
+pub fn transfer_native_funds(denom: &str, amount: u8, recipient: &str) -> anyhow::Result<SubMsg> {
+    Ok(SubMsg::new(
+        Asset::native(denom, amount).transfer_msg(recipient)?,
+    ))
+}
+
+pub fn transfer_cw20_funds(cw20_addr: &str, amount: u8, recipient: &str) -> anyhow::Result<SubMsg> {
+    Ok(SubMsg::new(
+        Asset::cw20(Addr::unchecked(cw20_addr), amount).transfer_msg(recipient)?,
+    ))
 }

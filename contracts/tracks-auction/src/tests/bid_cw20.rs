@@ -1,13 +1,11 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, default_duration,
-    instantiate_with_cw20_price_asset, test_bid, test_cw20_bid, ADMIN, CW20_ADDR, CW20_ADDR2,
-    NFT_ADDR, TOKEN1, UANDR, USER1, USER2, USER3,
+    instantiate_with_cw20_price_asset, test_bid, test_cw20_bid, transfer_cw20_funds,
+    transfer_nft_msg, ADMIN, CW20_ADDR, CW20_ADDR2, NFT_ADDR, TOKEN1, UANDR, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{attr, coins, wasm_execute, Addr, BlockInfo, Env, SubMsg, Timestamp};
-use cw721::Cw721ExecuteMsg::TransferNft;
-use cw_asset::Asset;
+use cosmwasm_std::{attr, coins, Addr, BlockInfo, Env, Timestamp};
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::AuctionStatus::Resolved;
 use tracks_auction_api::api::{Bid, PriceAsset};
@@ -385,9 +383,7 @@ fn bid_cw20_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Res
 
     assert_eq!(
         response.messages,
-        vec![SubMsg::new(
-            Asset::cw20(Addr::unchecked(CW20_ADDR), first_bid_amount).transfer_msg(USER2)?
-        )],
+        vec![transfer_cw20_funds(CW20_ADDR, first_bid_amount, USER2)?],
     );
 
     let auction = query_auction(deps.as_ref(), 0)?.auction;
@@ -513,15 +509,8 @@ fn bid_cw20_buyout_price_instantly_wins_the_auction() -> anyhow::Result<()> {
     assert_eq!(
         response.messages,
         vec![
-            SubMsg::new(Asset::cw20(Addr::unchecked(CW20_ADDR), buyout_price).transfer_msg(USER1)?),
-            SubMsg::new(wasm_execute(
-                NFT_ADDR,
-                &TransferNft {
-                    recipient: USER2.to_string(),
-                    token_id: TOKEN1.to_string()
-                },
-                vec![],
-            )?,),
+            transfer_cw20_funds(CW20_ADDR, buyout_price, USER1)?,
+            transfer_nft_msg(NFT_ADDR, USER2, TOKEN1)?,
         ],
     );
 

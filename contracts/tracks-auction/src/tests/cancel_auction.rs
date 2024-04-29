@@ -1,11 +1,10 @@
 use crate::tests::helpers::{
     after_seconds, create_test_auction, default_duration, instantiate_with_native_price_asset,
-    test_bid, test_cancel_auction, test_resolve_auction, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
-    USER2,
+    test_bid, test_cancel_auction, test_resolve_auction, transfer_nft_msg, ADMIN, NFT_ADDR, TOKEN1,
+    UANDR, USER1, USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{attr, coins, wasm_execute, SubMsg};
-use cw721::Cw721ExecuteMsg::TransferNft;
+use cosmwasm_std::{attr, coins, SubMsg};
 use cw_asset::Asset;
 use cw_utils::Duration::Time;
 use tracks_auction_api::error::AuctionError::{
@@ -144,14 +143,7 @@ fn cancel_auction_with_no_bids_sends_back_nft_to_creator() -> anyhow::Result<()>
 
     assert_eq!(
         response.messages,
-        vec![SubMsg::new(wasm_execute(
-            NFT_ADDR,
-            &TransferNft {
-                recipient: USER1.to_string(),
-                token_id: TOKEN1.to_string()
-            },
-            vec![]
-        )?)]
+        vec![transfer_nft_msg(NFT_ADDR, USER1, TOKEN1)?],
     );
 
     assert_eq!(
@@ -188,14 +180,7 @@ fn cancel_auction_with_bid_sends_back_nft_to_creator_and_bid_to_bidder() -> anyh
     assert_eq!(
         response.messages,
         vec![
-            SubMsg::new(wasm_execute(
-                NFT_ADDR,
-                &TransferNft {
-                    recipient: USER1.to_string(),
-                    token_id: TOKEN1.to_string()
-                },
-                vec![],
-            )?),
+            transfer_nft_msg(NFT_ADDR, USER1, TOKEN1)?,
             SubMsg::new(Asset::native(UANDR, 8u8).transfer_msg(ADMIN)?)
         ]
     );

@@ -2,12 +2,11 @@ use crate::execute::resolve_auction;
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,
-    test_bid, test_cancel_auction, test_resolve_auction, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
-    USER2,
+    test_bid, test_cancel_auction, test_resolve_auction, transfer_nft_msg, ADMIN, NFT_ADDR, TOKEN1,
+    UANDR, USER1, USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{attr, coins, wasm_execute, SubMsg};
-use cw721::Cw721ExecuteMsg::TransferNft;
+use cosmwasm_std::{attr, coins, SubMsg};
 use cw_asset::Asset;
 use cw_utils::Duration;
 use cw_utils::Duration::Height;
@@ -103,14 +102,7 @@ fn resolve_auction_height_duration_with_no_active_bid_refunds_nft() -> anyhow::R
 
     assert_eq!(
         response.messages,
-        vec![SubMsg::new(wasm_execute(
-            NFT_ADDR,
-            &TransferNft {
-                recipient: USER1.to_string(),
-                token_id: TOKEN1.to_string()
-            },
-            vec![],
-        )?)]
+        vec![transfer_nft_msg(NFT_ADDR, USER1, TOKEN1)?]
     );
 
     assert_eq!(
@@ -143,14 +135,7 @@ fn resolve_auction_ended_time_duration_with_no_active_bid_refunds_nft() -> anyho
 
     assert_eq!(
         response.messages,
-        vec![SubMsg::new(wasm_execute(
-            NFT_ADDR,
-            &TransferNft {
-                recipient: USER1.to_string(),
-                token_id: TOKEN1.to_string()
-            },
-            vec![],
-        )?)]
+        vec![transfer_nft_msg(NFT_ADDR, USER1, TOKEN1)?]
     );
 
     Ok(())
@@ -181,14 +166,7 @@ fn resolve_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> anyhow::
     assert_eq!(
         response.messages,
         vec![
-            SubMsg::new(wasm_execute(
-                NFT_ADDR,
-                &TransferNft {
-                    recipient: USER2.to_string(),
-                    token_id: TOKEN1.to_string()
-                },
-                vec![],
-            )?),
+            transfer_nft_msg(NFT_ADDR, USER2, TOKEN1)?,
             SubMsg::new(Asset::native(UANDR, 6u8).transfer_msg(USER1)?),
         ]
     );
