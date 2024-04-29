@@ -15,6 +15,9 @@ pub enum AuctionError {
     #[error("CW721 you're using is not whitelisted for auctions")]
     Cw721NotWhitelisted,
 
+    #[error("Duration has to be greater than 0")]
+    InvalidAuctionDuration,
+
     // TODO: consolidate all the errors regarding invalid bid funds here, they're unnecessarily wide
     #[error("Attempting to bid with no funds")]
     NoBidFundsSupplied,
@@ -33,4 +36,7 @@ pub enum AuctionError {
 
     #[error("Attempting to bid using the wrong asset")]
     BidWrongAsset,
+
+    #[error("Cannot place a bid after the auction has ended")]
+    BiddingAfterAuctionEnded,
 }

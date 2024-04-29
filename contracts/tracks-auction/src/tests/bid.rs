@@ -1,15 +1,16 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
-    create_test_auction, instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR,
-    TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
+    create_test_auction, default_duration, instantiate_with_native_price_asset, no_funds, test_bid,
+    ADMIN, NFT_ADDR, TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
 use cw_asset::Asset;
+use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, InsufficientFundsForBid,
-    NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded,
+    InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 
 // TODO: go through expected errors and modify them to (usually) be BidBelowMinimum or similar, we can consolidate the myriad types of errors used
@@ -21,7 +22,15 @@ fn bid_with_no_asset_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let result = test_bid(deps.as_mut(), env.clone(), USER2, 0, 0, &no_funds());
 
@@ -37,7 +46,15 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let non_existent_auction_id = 2;
     let result = test_bid(
@@ -61,7 +78,15 @@ fn bid_with_multiple_native_assets_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let result = test_bid(
         deps.as_mut(),
@@ -84,7 +109,15 @@ fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let bid_amount = 5;
     let funds_for_bid = 4;
@@ -119,6 +152,7 @@ fn bid_less_than_minimum_bid_fails() -> anyhow::Result<()> {
         NFT_ADDR,
         TOKEN1,
         USER1,
+        default_duration(),
         minimum_bid_amount,
     )?;
 
@@ -146,7 +180,15 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, price_denom)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let result = test_bid(
         deps.as_mut(),
@@ -177,7 +219,15 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let response = test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
 
@@ -205,7 +255,15 @@ fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let first_bid_amount = 5;
     let second_bid_amount = first_bid_amount;
@@ -240,7 +298,15 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
 
     let first_bid_amount = 5;
     let second_bid_amount = 6;
@@ -290,6 +356,100 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
             posted_at: new_block,
         })
     );
+
+    Ok(())
+}
+
+#[test]
+fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let auction_created_at = BlockInfo {
+        height: 1234,
+        time: Timestamp::from_seconds(23456),
+        chain_id: mock_env().block.chain_id,
+    };
+
+    create_test_auction(
+        deps.as_mut(),
+        Env {
+            block: auction_created_at.clone(),
+            ..env.clone()
+        },
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Time(53),
+        5,
+    )?;
+
+    let result = test_bid(
+        deps.as_mut(),
+        Env {
+            block: BlockInfo {
+                height: auction_created_at.height + 2,
+                time: auction_created_at.time.plus_seconds(54),
+                chain_id: auction_created_at.chain_id,
+            },
+            ..env
+        },
+        USER2,
+        0,
+        5,
+        &coins(5, UANDR),
+    );
+
+    assert_eq!(result, Err(BiddingAfterAuctionEnded));
+
+    Ok(())
+}
+
+#[test]
+fn bid_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let auction_created_at = BlockInfo {
+        height: 1234,
+        time: Timestamp::from_seconds(23456),
+        chain_id: mock_env().block.chain_id,
+    };
+
+    create_test_auction(
+        deps.as_mut(),
+        Env {
+            block: auction_created_at.clone(),
+            ..env.clone()
+        },
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Height(28),
+        5,
+    )?;
+
+    let result = test_bid(
+        deps.as_mut(),
+        Env {
+            block: BlockInfo {
+                height: auction_created_at.height + 29,
+                time: auction_created_at.time.plus_seconds(540),
+                chain_id: auction_created_at.chain_id,
+            },
+            ..env
+        },
+        USER2,
+        0,
+        5,
+        &coins(5, UANDR),
+    );
+
+    assert_eq!(result, Err(BiddingAfterAuctionEnded));
 
     Ok(())
 }

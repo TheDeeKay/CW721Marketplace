@@ -2,6 +2,7 @@ use crate::api::{AuctionId, AuctionResponse, AuctionsResponse, ConfigResponse, P
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
 use cw721::Cw721ReceiveMsg;
+use cw_utils::Duration;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -28,6 +29,9 @@ pub enum ExecuteMsg {
 #[cw_serde]
 pub enum Cw721HookMsg {
     CreateAuction {
+        /// Duration of the auction. Once it ends, no new bids are accepted, and if there is
+        /// an active bid, that bid wins the auction.
+        duration: Duration,
         /// Minimum amount of funds to be accepted as the first bid
         minimum_bid_amount: Uint128,
     },

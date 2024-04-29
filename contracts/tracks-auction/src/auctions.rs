@@ -1,6 +1,7 @@
 use crate::config::load_config;
 use cosmwasm_std::{Addr, BlockInfo, Storage, Uint128};
 use cw_storage_plus::Map;
+use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, Bid, TrackAuction};
 use tracks_auction_api::error::AuctionError::AuctionIdNotFound;
 use tracks_auction_api::error::AuctionResult;
@@ -12,6 +13,7 @@ const AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("auctions");
 pub fn save_new_auction(
     storage: &mut dyn Storage,
     current_block: BlockInfo,
+    duration: Duration,
     submitter: Addr,
     track_token_id: String,
     minimum_bid_amount: Uint128,
@@ -27,6 +29,7 @@ pub fn save_new_auction(
         0,
         &TrackAuction {
             created_at: current_block,
+            duration,
             id: 0, // TODO: provoke by tests
             submitter,
             track_token_id,

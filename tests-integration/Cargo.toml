@@ -22,5 +22,6 @@ cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 cw721-base = { workspace = true }
 cw721 = { workspace = true }
+cw-utils = { workspace = true }
 
 cw-multi-test = { workspace = true }

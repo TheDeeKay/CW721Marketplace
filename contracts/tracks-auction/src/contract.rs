@@ -7,10 +7,12 @@ use cosmwasm_std::{
 };
 use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
+use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, Cw721NotWhitelisted,
-    InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded,
+    Cw721NotWhitelisted, InsufficientFundsForBid, InvalidAuctionDuration, NoBidFundsSupplied,
+    UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -61,7 +63,7 @@ pub fn execute(
 // TODO: move to another file
 pub fn receive_nft(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: Cw721ReceiveMsg,
 ) -> AuctionResult<Response> {
@@ -73,11 +75,18 @@ pub fn receive_nft(
     }
 
     match from_json(msg.msg) {
-        Ok(CreateAuction { minimum_bid_amount }) => {
+        Ok(CreateAuction {
+            duration,
+            minimum_bid_amount,
+        }) => {
+            if duration == Time(0) || duration == Height(0) {
+                return Err(InvalidAuctionDuration);
+            }
             let submitter = deps.api.addr_validate(&msg.sender)?;
             save_new_auction(
                 deps.storage,
-                _env.block,
+                env.block,
+                duration,
                 submitter,
                 msg.token_id,
                 minimum_bid_amount,
@@ -103,6 +112,10 @@ pub fn bid(
     match auction {
         None => Err(AuctionIdNotFound),
         Some(auction) => {
+            if auction.has_ended(env.block.clone()) {
+                return Err(BiddingAfterAuctionEnded);
+            }
+
             match &info.funds[..] {
                 [coin] => {
                     // TODO: should we really accept more funds than specified? should be a design decision

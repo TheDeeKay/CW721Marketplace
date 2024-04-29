@@ -1,12 +1,15 @@
 use crate::query::{query_auction, query_auctions};
 use crate::tests::helpers::{
-    create_test_auction, instantiate_with_native_price_asset, ADMIN, NFT_ADDR, NFT_ADDR2, TOKEN1,
-    UANDR, UATOM, USER1,
+    create_test_auction, default_duration, instantiate_with_native_price_asset, ADMIN, NFT_ADDR,
+    NFT_ADDR2, TOKEN1, UANDR, UATOM, USER1,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{Addr, BlockInfo, Env, Timestamp};
+use cw_utils::Duration;
+use cw_utils::Duration::Height;
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
-use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
+use tracks_auction_api::error::AuctionError::{Cw721NotWhitelisted, InvalidAuctionDuration};
+use Duration::Time;
 
 #[test]
 fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
@@ -15,9 +18,61 @@ fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    let result = create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR2, TOKEN1, ADMIN, 0);
+    let result = create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR2,
+        TOKEN1,
+        ADMIN,
+        default_duration(),
+        0,
+    );
 
     assert_eq!(result, Err(Cw721NotWhitelisted));
+
+    Ok(())
+}
+
+#[test]
+fn create_auction_with_time_0_duration_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let result = create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        ADMIN,
+        Time(0),
+        0,
+    );
+
+    assert_eq!(result, Err(InvalidAuctionDuration));
+
+    Ok(())
+}
+
+#[test]
+fn create_auction_with_height_0_duration_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let result = create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        ADMIN,
+        Height(0),
+        0,
+    );
+
+    assert_eq!(result, Err(InvalidAuctionDuration));
 
     Ok(())
 }
@@ -39,6 +94,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UATOM)?;
 
     let track_token_id = "first_track";
+    let duration = Time(24);
 
     create_test_auction(
         deps.as_mut(),
@@ -46,11 +102,13 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         NFT_ADDR,
         track_token_id,
         USER1,
+        duration.clone(),
         4,
     )?;
 
     let expected_auction = TrackAuction {
         created_at: current_block,
+        duration,
         id: 0,
         submitter: Addr::unchecked(USER1),
         track_token_id: track_token_id.to_string(),
@@ -65,7 +123,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
 
     let response = query_auctions(deps.as_ref())?;
 
-    assert_eq!(response.auctions, vec![expected_auction],);
+    assert_eq!(response.auctions, vec![expected_auction]);
 
     Ok(())
 }

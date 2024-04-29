@@ -5,6 +5,7 @@ use cosmwasm_std::{to_json_binary, Uint128};
 use cw721::Cw721ExecuteMsg::SendNft;
 use cw721_tracks_api::api::TrackMetadata;
 use cw_multi_test::{App, Executor, IntoAddr};
+use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionsResponse, PriceAsset, TrackAuction};
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::QueryMsg::Auctions;
@@ -46,6 +47,7 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
             contract: tracks_auction.to_string(),
             token_id: "1".to_string(),
             msg: to_json_binary(&CreateAuction {
+                duration: Duration::Time(200),
                 minimum_bid_amount: Uint128::zero(),
             })?,
         },
@@ -86,6 +88,8 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         },
     )?;
 
+    let duration = Duration::Time(200);
+
     app.execute_contract(
         USER1.into_addr(),
         cw721_tracks.clone(),
@@ -93,6 +97,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
             contract: tracks_auction.to_string(),
             token_id: track_token_id.to_string(),
             msg: to_json_binary(&CreateAuction {
+                duration: duration.clone(),
                 minimum_bid_amount: 4u128.into(),
             })?,
         },
@@ -107,6 +112,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         response.auctions,
         vec![TrackAuction {
             created_at: app.block_info(),
+            duration,
             id: 0,
             submitter: USER1.into_addr(),
             track_token_id: track_token_id.to_string(),

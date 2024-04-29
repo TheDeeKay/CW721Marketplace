@@ -1,5 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, Uint128};
+use cw_utils::Duration;
+use cw_utils::Duration::{Height, Time};
 use std::ops::Add;
 
 pub type AuctionId = u64;
@@ -21,6 +23,7 @@ pub struct Bid {
 #[cw_serde]
 pub struct TrackAuction {
     pub created_at: BlockInfo,
+    pub duration: Duration,
     /// ID of the auction posting
     pub id: AuctionId,
     /// The address that submitted this auction. This will be the address that receives the
@@ -40,6 +43,13 @@ impl TrackAuction {
         match &self.active_bid {
             None => self.minimum_bid_amount,
             Some(bid) => bid.amount.add(Uint128::from(1u8)),
+        }
+    }
+
+    pub fn has_ended(&self, current_block: BlockInfo) -> bool {
+        match self.duration {
+            Height(height) => current_block.height > self.created_at.height + height,
+            Time(seconds) => current_block.time > self.created_at.time.plus_seconds(seconds),
         }
     }
 }
