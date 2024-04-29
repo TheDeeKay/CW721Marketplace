@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coin, coins, Addr, SubMsg};
+use cosmwasm_std::{coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
 use cw_asset::Asset;
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
@@ -164,8 +164,16 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
 
 #[test]
 fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
+    let current_block = BlockInfo {
+        height: 12345,
+        time: Timestamp::from_seconds(23456),
+        chain_id: mock_env().block.chain_id,
+    };
     let mut deps = mock_dependencies();
-    let env = mock_env();
+    let env = Env {
+        block: current_block.clone(),
+        ..mock_env()
+    };
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
@@ -183,6 +191,7 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
             amount: 5u8.into(),
             asset: PriceAsset::native(UANDR),
             bidder: Addr::unchecked(USER2),
+            posted_at: current_block,
         })
     );
 
@@ -245,9 +254,18 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
         &coins(first_bid_amount.into(), UANDR),
     )?;
 
+    let new_block = BlockInfo {
+        height: env.block.height + 10,
+        time: Timestamp::from_seconds(env.block.time.seconds() + 120),
+        chain_id: mock_env().block.chain_id,
+    };
+
     let response = test_bid(
         deps.as_mut(),
-        env.clone(),
+        Env {
+            block: new_block.clone(),
+            ..env
+        },
         USER3,
         0,
         second_bid_amount,
@@ -269,6 +287,7 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
             amount: second_bid_amount.into(),
             asset: PriceAsset::native(UANDR),
             bidder: Addr::unchecked(USER3),
+            posted_at: new_block,
         })
     );
 

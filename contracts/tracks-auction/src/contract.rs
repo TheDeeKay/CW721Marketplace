@@ -91,7 +91,7 @@ pub fn receive_nft(
 // TODO: move to another file
 pub fn bid(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     auction_id: AuctionId,
     bid_amount: Uint128,
@@ -105,7 +105,7 @@ pub fn bid(
         Some(auction) => {
             match &info.funds[..] {
                 [coin] => {
-                    // TODO: should we really accept more funds than specified?
+                    // TODO: should we really accept more funds than specified? should be a design decision
                     if coin.amount < bid_amount {
                         Err(InsufficientFundsForBid)
                     } else {
@@ -121,6 +121,7 @@ pub fn bid(
                                     amount: bid_amount,
                                     asset: config.price_asset,
                                     bidder: info.sender,
+                                    posted_at: env.block,
                                 },
                             )?;
 
