@@ -4,6 +4,7 @@ use cw_asset::AssetInfo;
 use cw_utils::Duration;
 use cw_utils::Duration::{Height, Time};
 use std::ops::Add;
+use strum_macros::Display;
 use PriceAsset::Native;
 
 pub type AuctionId = u64;
@@ -69,6 +70,7 @@ impl TrackAuction {
 }
 
 #[cw_serde]
+#[derive(Display)]
 pub enum PriceAsset {
     Native { denom: String },
     // TODO: add CW20 here as well (once we do, we need to split this into PriceAssetUnchecked as well)

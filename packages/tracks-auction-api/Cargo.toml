@@ -16,4 +16,5 @@ cw721-tracks-api = { workspace = true }
 cw-utils = { workspace = true }
 cw-asset = { workspace = true }
 serde = { workspace = true }
+strum_macros = { workspace = true }
 thiserror = { workspace = true }
