@@ -143,6 +143,8 @@ fn resolve_bid(
         return Err(Unauthorized);
     }
 
+    // TODO: should we forbid bidding on top of one's own bid?
+
     if auction.has_ended(&env.block) {
         return Err(BiddingAfterAuctionEnded);
     }
