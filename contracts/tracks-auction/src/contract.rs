@@ -2,22 +2,23 @@ use crate::auctions::{load_auction, save_new_auction, update_active_bid};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
-    entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError, SubMsg, Uint128,
+    entry_point, from_json, to_json_binary, wasm_execute, Binary, Deps, DepsMut, Env, MessageInfo,
+    Response, StdError, SubMsg, Uint128,
 };
+use cw721::Cw721ExecuteMsg::TransferNft;
 use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded,
-    Cw721NotWhitelisted, InsufficientFundsForBid, InvalidAuctionDuration, NoBidFundsSupplied,
-    UnnecessaryAssetsForBid,
+    AuctionIdNotFound, AuctionStillInProgress, BidLowerThanMinimum, BidWrongAsset,
+    BiddingAfterAuctionEnded, Cw721NotWhitelisted, InsufficientFundsForBid, InvalidAuctionDuration,
+    NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
-use ExecuteMsg::ReceiveNft;
+use ExecuteMsg::{ReceiveNft, ResolveEndedAuction};
 use QueryMsg::{Auction, Auctions};
 
 // Version info for migration
@@ -57,6 +58,7 @@ pub fn execute(
             auction_id,
             bid_amount,
         } => bid(deps, env, info, auction_id, bid_amount),
+        ResolveEndedAuction { auction_id } => resolve_ended_auction(deps, env, info, auction_id),
     }
 }
 
@@ -88,6 +90,7 @@ pub fn receive_nft(
                 env.block,
                 duration,
                 submitter,
+                info.sender,
                 msg.token_id,
                 minimum_bid_amount,
             )?;
@@ -107,58 +110,75 @@ pub fn bid(
 ) -> AuctionResult<Response> {
     // TODO: refactor
 
-    let auction = load_auction(deps.storage, auction_id)?;
+    let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
 
-    match auction {
-        None => Err(AuctionIdNotFound),
-        Some(auction) => {
-            if auction.has_ended(env.block.clone()) {
-                return Err(BiddingAfterAuctionEnded);
+    if auction.has_ended(&env.block) {
+        return Err(BiddingAfterAuctionEnded);
+    }
+
+    match &info.funds[..] {
+        [coin] => {
+            // TODO: should we really accept more funds than specified? should be a design decision
+            if coin.amount < bid_amount {
+                return Err(InsufficientFundsForBid);
             }
+            let config = load_config(deps.storage)?;
+            if config.price_asset != PriceAsset::native(&coin.denom) {
+                Err(BidWrongAsset)
+            } else if auction.minimum_next_bid_amount() <= bid_amount {
+                let last_active_bid = update_active_bid(
+                    deps.storage,
+                    auction_id,
+                    Bid {
+                        amount: bid_amount,
+                        asset: config.price_asset,
+                        bidder: info.sender,
+                        posted_at: env.block,
+                    },
+                )?;
 
-            match &info.funds[..] {
-                [coin] => {
-                    // TODO: should we really accept more funds than specified? should be a design decision
-                    if coin.amount < bid_amount {
-                        Err(InsufficientFundsForBid)
-                    } else {
-                        let config = load_config(deps.storage)?;
-                        if config.price_asset != PriceAsset::native(&coin.denom) {
-                            Err(BidWrongAsset)
-                        } else if auction.minimum_next_bid_amount() <= bid_amount {
-                            let last_active_bid = update_active_bid(
-                                deps.storage,
-                                auction_id,
-                                Bid {
-                                    amount: bid_amount,
-                                    asset: config.price_asset,
-                                    bidder: info.sender,
-                                    posted_at: env.block,
-                                },
-                            )?;
+                let base_response = Response::new(); // TODO: add attributes
 
-                            let base_response = Response::new(); // TODO: add attributes
-
-                            match last_active_bid {
-                                Some(bid) => {
-                                    let refund_bid_submsg = SubMsg::new(
-                                        Asset::native(&coin.denom, bid.amount)
-                                            .transfer_msg(bid.bidder)?,
-                                    );
-                                    Ok(base_response.add_submessage(refund_bid_submsg))
-                                }
-                                None => Ok(base_response),
-                            }
-                        } else {
-                            Err(BidLowerThanMinimum)
-                        }
+                match last_active_bid {
+                    Some(bid) => {
+                        let refund_bid_submsg = SubMsg::new(
+                            Asset::native(&coin.denom, bid.amount).transfer_msg(bid.bidder)?,
+                        );
+                        Ok(base_response.add_submessage(refund_bid_submsg))
                     }
+                    None => Ok(base_response),
                 }
-                [] => Err(NoBidFundsSupplied),
-                _ => Err(UnnecessaryAssetsForBid),
+            } else {
+                Err(BidLowerThanMinimum)
             }
         }
+        [] => Err(NoBidFundsSupplied),
+        _ => Err(UnnecessaryAssetsForBid),
     }
+}
+
+pub fn resolve_ended_auction(
+    deps: DepsMut,
+    env: Env,
+    _info: MessageInfo,
+    auction_id: AuctionId,
+) -> AuctionResult<Response> {
+    let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    if !auction.has_ended(&env.block) {
+        return Err(AuctionStillInProgress);
+    }
+
+    let return_nft_submsg = SubMsg::new(wasm_execute(
+        auction.nft_contract.to_string(),
+        &TransferNft {
+            recipient: auction.submitter.to_string(),
+            token_id: auction.track_token_id,
+        },
+        vec![],
+    )?);
+
+    Ok(Response::new().add_submessage(return_nft_submsg)) // TODO: add attributes
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

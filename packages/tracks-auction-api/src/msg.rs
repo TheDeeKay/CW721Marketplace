@@ -23,6 +23,14 @@ pub enum ExecuteMsg {
         /// from the funds received (especially if e.g. fees are added later on).
         bid_amount: Uint128,
     },
+    /// Resolves an auction that has ended.
+    /// This means that the auction's status will be changed, and assets will be resolved.
+    ///
+    /// If there is an active bid, the NFT will go to the bidder and the bid to the auction creator.
+    /// If not, the NFT will go back to its owner.
+    ResolveEndedAuction {
+        auction_id: AuctionId,
+    },
     ReceiveNft(Cw721ReceiveMsg),
 }
 

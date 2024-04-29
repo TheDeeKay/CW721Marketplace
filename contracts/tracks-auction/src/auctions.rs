@@ -16,6 +16,7 @@ pub fn save_new_auction(
     current_block: BlockInfo,
     duration: Duration,
     submitter: Addr,
+    nft_contract: Addr,
     track_token_id: String,
     minimum_bid_amount: Uint128,
 ) -> AuctionResult<()> {
@@ -32,6 +33,7 @@ pub fn save_new_auction(
             duration,
             id: next_auction_id,
             submitter,
+            nft_contract,
             track_token_id,
             minimum_bid_amount,
             price_asset: config.price_asset,

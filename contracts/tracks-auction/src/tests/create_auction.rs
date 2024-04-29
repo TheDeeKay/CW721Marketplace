@@ -111,6 +111,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         duration,
         id: 0,
         submitter: Addr::unchecked(USER1),
+        nft_contract: Addr::unchecked(NFT_ADDR),
         track_token_id: track_token_id.to_string(),
         minimum_bid_amount: 4u8.into(),
         price_asset: PriceAsset::native("uatom"),

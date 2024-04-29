@@ -29,7 +29,7 @@ pub struct TrackAuction {
     /// The address that submitted this auction. This will be the address that receives the
     /// funds, or the NFT (if the auction fails).
     pub submitter: Addr,
-    // TODO: add NFT contract here
+    pub nft_contract: Addr,
     /// ID of the NFT token representing this track.
     pub track_token_id: String,
     pub minimum_bid_amount: Uint128,
@@ -46,7 +46,7 @@ impl TrackAuction {
         }
     }
 
-    pub fn has_ended(&self, current_block: BlockInfo) -> bool {
+    pub fn has_ended(&self, current_block: &BlockInfo) -> bool {
         match self.duration {
             Height(height) => current_block.height > self.created_at.height + height,
             Time(seconds) => current_block.time > self.created_at.time.plus_seconds(seconds),

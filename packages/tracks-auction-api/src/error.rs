@@ -39,4 +39,7 @@ pub enum AuctionError {
 
     #[error("Cannot place a bid after the auction has ended")]
     BiddingAfterAuctionEnded,
+
+    #[error("Auction is still in progress, cannot perform that action yet")]
+    AuctionStillInProgress,
 }
