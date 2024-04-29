@@ -126,10 +126,9 @@ pub fn bid(
                         if config.price_asset != PriceAsset::native(&coin.denom) {
                             Err(BidWrongAsset)
                         } else if auction.minimum_next_bid_amount() <= bid_amount {
-                            // TODO: provoke usage of proper ID
                             let last_active_bid = update_active_bid(
                                 deps.storage,
-                                0,
+                                auction_id,
                                 Bid {
                                     amount: bid_amount,
                                     asset: config.price_asset,

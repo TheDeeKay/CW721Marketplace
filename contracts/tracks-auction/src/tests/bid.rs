@@ -249,6 +249,61 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
 }
 
 #[test]
+fn bid_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::Result<()> {
+    let current_block = BlockInfo {
+        height: 12345,
+        time: Timestamp::from_seconds(23456),
+        chain_id: mock_env().block.chain_id,
+    };
+    let mut deps = mock_dependencies();
+    let env = Env {
+        block: current_block.clone(),
+        ..mock_env()
+    };
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 1, 5, &coins(5, UANDR))?;
+
+    let auction = query_auction(deps.as_ref(), 1)?.auction;
+
+    assert_eq!(
+        auction.active_bid,
+        Some(Bid {
+            amount: 5u8.into(),
+            asset: PriceAsset::native(UANDR),
+            bidder: Addr::unchecked(USER2),
+            posted_at: current_block,
+        })
+    );
+
+    let auction = query_auction(deps.as_ref(), 0)?.auction;
+    assert!(auction.active_bid.is_none());
+
+    Ok(())
+}
+
+#[test]
 fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();

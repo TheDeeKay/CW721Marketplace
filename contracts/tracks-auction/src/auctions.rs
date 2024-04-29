@@ -19,7 +19,6 @@ pub fn save_new_auction(
     track_token_id: String,
     minimum_bid_amount: Uint128,
 ) -> AuctionResult<()> {
-    // TODO: provoke by tests
     let next_auction_id = NEXT_AUCTION_ID.may_load(storage)?.unwrap_or_default();
     NEXT_AUCTION_ID.save(storage, &(next_auction_id + 1))?;
 
@@ -31,7 +30,7 @@ pub fn save_new_auction(
         &TrackAuction {
             created_at: current_block,
             duration,
-            id: next_auction_id, // TODO: provoke by tests
+            id: next_auction_id,
             submitter,
             track_token_id,
             minimum_bid_amount,
@@ -56,7 +55,7 @@ pub fn update_active_bid(
 
     AUCTIONS_MAP.save(
         storage,
-        0, // TODO: provoke by tests
+        auction_id,
         &TrackAuction {
             active_bid: Some(new_active_bid),
             ..auction
