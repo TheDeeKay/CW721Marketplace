@@ -3,9 +3,10 @@ use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{Addr, BlockInfo, StdResult, Storage, Uint128};
 use cw_storage_plus::{Item, Map};
 use cw_utils::Duration;
-use tracks_auction_api::api::{AuctionId, Bid, TrackAuction};
+use tracks_auction_api::api::{AuctionId, AuctionStatus, Bid, TrackAuction};
 use tracks_auction_api::error::AuctionError::AuctionIdNotFound;
 use tracks_auction_api::error::AuctionResult;
+use AuctionStatus::Active;
 
 const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
 
@@ -29,6 +30,7 @@ pub fn save_new_auction(
         storage,
         next_auction_id,
         &TrackAuction {
+            status: Active,
             created_at: current_block,
             duration,
             id: next_auction_id,
@@ -65,6 +67,25 @@ pub fn update_active_bid(
     )?;
 
     Ok(auction.active_bid)
+}
+
+pub fn update_auction_status(
+    storage: &mut dyn Storage,
+    auction_id: AuctionId,
+    new_status: AuctionStatus,
+) -> AuctionResult<()> {
+    let auction = load_auction(storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    AUCTIONS_MAP.save(
+        storage,
+        auction_id,
+        &TrackAuction {
+            status: new_status,
+            ..auction
+        },
+    )?;
+
+    Ok(())
 }
 
 pub fn load_auctions(storage: &dyn Storage) -> AuctionResult<Vec<TrackAuction>> {

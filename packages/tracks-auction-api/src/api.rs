@@ -15,6 +15,12 @@ pub struct Config {
 }
 
 #[cw_serde]
+pub enum AuctionStatus {
+    Active,
+    Resolved,
+}
+
+#[cw_serde]
 pub struct Bid {
     pub amount: Uint128,
     pub asset: PriceAsset,
@@ -24,6 +30,7 @@ pub struct Bid {
 
 #[cw_serde]
 pub struct TrackAuction {
+    pub status: AuctionStatus,
     pub created_at: BlockInfo,
     pub duration: Duration,
     /// ID of the auction posting

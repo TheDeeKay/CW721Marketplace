@@ -1,4 +1,4 @@
-use crate::auctions::{load_auction, save_new_auction, update_active_bid};
+use crate::auctions::{load_auction, save_new_auction, update_active_bid, update_auction_status};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
@@ -9,11 +9,12 @@ use cw721::Cw721ExecuteMsg::TransferNft;
 use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
+use tracks_auction_api::api::AuctionStatus::Resolved;
 use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionIdNotFound, AuctionStillInProgress, BidLowerThanMinimum, BidWrongAsset,
-    BiddingAfterAuctionEnded, Cw721NotWhitelisted, InsufficientFundsForBid, InvalidAuctionDuration,
-    NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionAlreadyResolved, AuctionIdNotFound, AuctionStillInProgress, BidLowerThanMinimum,
+    BidWrongAsset, BiddingAfterAuctionEnded, Cw721NotWhitelisted, InsufficientFundsForBid,
+    InvalidAuctionDuration, NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -169,11 +170,18 @@ pub fn resolve_ended_auction(
         return Err(AuctionStillInProgress);
     }
 
+    if auction.status == Resolved {
+        return Err(AuctionAlreadyResolved);
+    }
+
+    update_auction_status(deps.storage, auction_id, Resolved)?;
+
     // TODO: add attributes
     let base_response = Response::new();
 
     match auction.active_bid {
         Some(bid) => {
+            // send NFT to the highest bidder
             let award_nft_submsg = SubMsg::new(wasm_execute(
                 auction.nft_contract.to_string(),
                 &TransferNft {
@@ -182,6 +190,7 @@ pub fn resolve_ended_auction(
                 },
                 vec![],
             )?);
+            // send funds to the auction creator
             let award_bid_submsg = SubMsg::new(
                 Asset::new(bid.asset.to_asset_info(), bid.amount)
                     .transfer_msg(auction.submitter.to_string())?,
@@ -192,6 +201,7 @@ pub fn resolve_ended_auction(
                 .add_submessage(award_bid_submsg))
         }
         None => {
+            // received no bids, simply return the NFT to the auction creator
             let return_nft_submsg = SubMsg::new(wasm_execute(
                 auction.nft_contract.to_string(),
                 &TransferNft {

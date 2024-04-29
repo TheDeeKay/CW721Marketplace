@@ -42,4 +42,7 @@ pub enum AuctionError {
 
     #[error("Auction is still in progress, cannot perform that action yet")]
     AuctionStillInProgress,
+
+    #[error("Auction was already resolved")]
+    AuctionAlreadyResolved,
 }

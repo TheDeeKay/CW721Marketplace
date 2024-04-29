@@ -7,6 +7,7 @@ use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{Addr, BlockInfo, Env, Timestamp};
 use cw_utils::Duration;
 use cw_utils::Duration::Height;
+use tracks_auction_api::api::AuctionStatus::Active;
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::{Cw721NotWhitelisted, InvalidAuctionDuration};
 use Duration::Time;
@@ -107,6 +108,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     )?;
 
     let expected_auction = TrackAuction {
+        status: Active,
         created_at: current_block,
         duration,
         id: 0,

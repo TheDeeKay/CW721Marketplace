@@ -6,9 +6,10 @@ use cw721::Cw721ExecuteMsg::SendNft;
 use cw721_tracks_api::api::TrackMetadata;
 use cw_multi_test::{App, Executor, IntoAddr};
 use cw_utils::Duration;
-use tracks_auction_api::api::{AuctionsResponse, PriceAsset, TrackAuction};
+use tracks_auction_api::api::{AuctionStatus, AuctionsResponse, PriceAsset, TrackAuction};
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
 use tracks_auction_api::msg::QueryMsg::Auctions;
+use AuctionStatus::Active;
 
 // TODO: this is duplicated by unit tests - probably remove
 #[test]
@@ -111,6 +112,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     assert_eq!(
         response.auctions,
         vec![TrackAuction {
+            status: Active,
             created_at: app.block_info(),
             duration,
             id: 0,
