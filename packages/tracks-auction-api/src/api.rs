@@ -1,8 +1,10 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, Uint128};
+use cw_asset::AssetInfo;
 use cw_utils::Duration;
 use cw_utils::Duration::{Height, Time};
 use std::ops::Add;
+use PriceAsset::Native;
 
 pub type AuctionId = u64;
 
@@ -62,8 +64,14 @@ pub enum PriceAsset {
 
 impl PriceAsset {
     pub fn native(denom: impl Into<String>) -> Self {
-        PriceAsset::Native {
+        Native {
             denom: denom.into(),
+        }
+    }
+
+    pub fn to_asset_info(&self) -> AssetInfo {
+        match self {
+            Native { denom } => AssetInfo::native(denom),
         }
     }
 }

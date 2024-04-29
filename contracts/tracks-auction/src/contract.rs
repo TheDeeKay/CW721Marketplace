@@ -169,16 +169,40 @@ pub fn resolve_ended_auction(
         return Err(AuctionStillInProgress);
     }
 
-    let return_nft_submsg = SubMsg::new(wasm_execute(
-        auction.nft_contract.to_string(),
-        &TransferNft {
-            recipient: auction.submitter.to_string(),
-            token_id: auction.track_token_id,
-        },
-        vec![],
-    )?);
+    // TODO: add attributes
+    let base_response = Response::new();
 
-    Ok(Response::new().add_submessage(return_nft_submsg)) // TODO: add attributes
+    match auction.active_bid {
+        Some(bid) => {
+            let award_nft_submsg = SubMsg::new(wasm_execute(
+                auction.nft_contract.to_string(),
+                &TransferNft {
+                    recipient: bid.bidder.to_string(),
+                    token_id: auction.track_token_id,
+                },
+                vec![],
+            )?);
+            let award_bid_submsg = SubMsg::new(
+                Asset::new(bid.asset.to_asset_info(), bid.amount)
+                    .transfer_msg(auction.submitter.to_string())?,
+            );
+
+            Ok(base_response
+                .add_submessage(award_nft_submsg)
+                .add_submessage(award_bid_submsg))
+        }
+        None => {
+            let return_nft_submsg = SubMsg::new(wasm_execute(
+                auction.nft_contract.to_string(),
+                &TransferNft {
+                    recipient: auction.submitter.to_string(),
+                    token_id: auction.track_token_id,
+                },
+                vec![],
+            )?);
+            Ok(base_response.add_submessage(return_nft_submsg))
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
