@@ -1,9 +1,10 @@
 use crate::contract::resolve_ended_auction;
 use crate::tests::helpers::{
-    create_test_auction, instantiate_with_native_price_asset, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
+    after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,
+    test_resolve_auction, ADMIN, NFT_ADDR, TOKEN1, UANDR, USER1,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{wasm_execute, BlockInfo, Env, SubMsg};
+use cosmwasm_std::{wasm_execute, SubMsg};
 use cw721::Cw721ExecuteMsg::TransferNft;
 use cw_utils::Duration;
 use cw_utils::Duration::Height;
@@ -35,26 +36,13 @@ fn resolve_ended_time_duration_auction_that_did_not_expire_fails() -> anyhow::Re
         deps.as_mut(),
         env.clone(),
         NFT_ADDR,
-        "1",
+        TOKEN1,
         USER1,
         Time(20),
         5,
     )?;
 
-    let new_block = BlockInfo {
-        time: env.block.time.plus_seconds(20),
-        ..env.block.clone()
-    };
-
-    let result = resolve_ended_auction(
-        deps.as_mut(),
-        Env {
-            block: new_block,
-            ..env
-        },
-        mock_info(USER1, &vec![]),
-        0,
-    );
+    let result = test_resolve_auction(deps.as_mut(), after_seconds(&env, 20), USER1, 0);
 
     assert_eq!(result, Err(AuctionStillInProgress));
 
@@ -72,26 +60,13 @@ fn resolve_ended_height_duration_auction_that_did_not_expire_fails() -> anyhow::
         deps.as_mut(),
         env.clone(),
         NFT_ADDR,
-        "1",
+        TOKEN1,
         USER1,
         Height(15),
         5,
     )?;
 
-    let new_block = BlockInfo {
-        height: env.block.height + 15,
-        ..env.block.clone()
-    };
-
-    let result = resolve_ended_auction(
-        deps.as_mut(),
-        Env {
-            block: new_block,
-            ..env
-        },
-        mock_info(USER1, &vec![]),
-        0,
-    );
+    let result = test_resolve_auction(deps.as_mut(), after_height(&env, 15), USER1, 0);
 
     assert_eq!(result, Err(AuctionStillInProgress));
 
@@ -115,20 +90,7 @@ fn resolve_ended_height_duration_auction_with_no_active_bid_refunds_nft() -> any
         5,
     )?;
 
-    let new_block = BlockInfo {
-        height: env.block.height + 16,
-        ..env.block.clone()
-    };
-
-    let response = resolve_ended_auction(
-        deps.as_mut(),
-        Env {
-            block: new_block,
-            ..env
-        },
-        mock_info(USER1, &vec![]),
-        0,
-    )?;
+    let response = test_resolve_auction(deps.as_mut(), after_height(&env, 16), USER1, 0)?;
 
     assert_eq!(
         response.messages,
@@ -162,20 +124,7 @@ fn resolve_ended_time_duration_auction_with_no_active_bid_refunds_nft() -> anyho
         5,
     )?;
 
-    let new_block = BlockInfo {
-        time: env.block.time.plus_seconds(21),
-        ..env.block.clone()
-    };
-
-    let response = resolve_ended_auction(
-        deps.as_mut(),
-        Env {
-            block: new_block,
-            ..env
-        },
-        mock_info(USER1, &vec![]),
-        0,
-    )?;
+    let response = test_resolve_auction(deps.as_mut(), after_seconds(&env, 21), USER1, 0)?;
 
     assert_eq!(
         response.messages,

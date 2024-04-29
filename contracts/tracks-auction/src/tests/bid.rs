@@ -1,7 +1,8 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
-    create_test_auction, default_duration, instantiate_with_native_price_asset, no_funds, test_bid,
-    ADMIN, NFT_ADDR, TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
+    after_height, after_seconds, create_test_auction, default_duration,
+    instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR, TOKEN1, UANDR, UATOM,
+    USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
@@ -422,18 +423,9 @@ fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    let auction_created_at = BlockInfo {
-        height: 1234,
-        time: Timestamp::from_seconds(23456),
-        chain_id: mock_env().block.chain_id,
-    };
-
     create_test_auction(
         deps.as_mut(),
-        Env {
-            block: auction_created_at.clone(),
-            ..env.clone()
-        },
+        env.clone(),
         NFT_ADDR,
         TOKEN1,
         USER1,
@@ -443,14 +435,7 @@ fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
 
     let result = test_bid(
         deps.as_mut(),
-        Env {
-            block: BlockInfo {
-                height: auction_created_at.height + 2,
-                time: auction_created_at.time.plus_seconds(54),
-                chain_id: auction_created_at.chain_id,
-            },
-            ..env
-        },
+        after_seconds(&env, 54),
         USER2,
         0,
         5,
@@ -490,14 +475,7 @@ fn bid_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
 
     let result = test_bid(
         deps.as_mut(),
-        Env {
-            block: BlockInfo {
-                height: auction_created_at.height + 29,
-                time: auction_created_at.time.plus_seconds(540),
-                chain_id: auction_created_at.chain_id,
-            },
-            ..env
-        },
+        after_height(&env, 29),
         USER2,
         0,
         5,

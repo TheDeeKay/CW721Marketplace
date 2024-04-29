@@ -1,6 +1,6 @@
-use crate::contract::{bid, instantiate, receive_nft};
+use crate::contract::{bid, instantiate, receive_nft, resolve_ended_auction};
 use cosmwasm_std::testing::mock_info;
-use cosmwasm_std::{to_json_binary, Coin, DepsMut, Env, Response};
+use cosmwasm_std::{to_json_binary, BlockInfo, Coin, DepsMut, Env, Response};
 use cw721::Cw721ReceiveMsg;
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, PriceAsset};
@@ -98,10 +98,39 @@ pub fn test_bid(
     )
 }
 
+pub fn test_resolve_auction(
+    deps: DepsMut,
+    env: Env,
+    sender: &str,
+    auction_id: AuctionId,
+) -> AuctionResult<Response> {
+    resolve_ended_auction(deps, env, mock_info(sender, &vec![]), auction_id)
+}
+
 pub fn no_funds() -> Vec<Coin> {
     vec![]
 }
 
 pub fn default_duration() -> Duration {
     Duration::Time(600)
+}
+
+pub fn after_height(env: &Env, height: u64) -> Env {
+    Env {
+        block: BlockInfo {
+            height: env.block.height + height,
+            ..env.block.clone()
+        },
+        ..env.clone()
+    }
+}
+
+pub fn after_seconds(env: &Env, seconds: u64) -> Env {
+    Env {
+        block: BlockInfo {
+            time: env.block.time.plus_seconds(seconds),
+            ..env.block.clone()
+        },
+        ..env.clone()
+    }
 }
