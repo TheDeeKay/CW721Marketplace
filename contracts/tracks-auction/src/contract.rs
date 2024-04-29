@@ -1,4 +1,4 @@
-use crate::auctions::{load_auction, save_auction};
+use crate::auctions::{load_auction, save_new_auction, update_active_bid};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auctions, query_config};
 use cosmwasm_std::{
@@ -6,7 +6,7 @@ use cosmwasm_std::{
     StdError, Uint128,
 };
 use cw721::Cw721ReceiveMsg;
-use tracks_auction_api::api::{AuctionId, Config, PriceAsset};
+use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, Cw721NotWhitelisted,
     InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
@@ -14,7 +14,7 @@ use tracks_auction_api::error::AuctionError::{
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
-use ExecuteMsg::{Bid, ReceiveNft};
+use ExecuteMsg::ReceiveNft;
 use QueryMsg::Auctions;
 
 // Version info for migration
@@ -50,7 +50,7 @@ pub fn execute(
 ) -> AuctionResult<Response> {
     match msg {
         ReceiveNft(nft_msg) => receive_nft(deps, env, info, nft_msg),
-        Bid {
+        ExecuteMsg::Bid {
             auction_id,
             bid_amount,
         } => bid(deps, env, info, auction_id, bid_amount),
@@ -74,7 +74,7 @@ pub fn receive_nft(
     match from_json(msg.msg) {
         Ok(CreateAuction { minimum_bid_amount }) => {
             let submitter = deps.api.addr_validate(&msg.sender)?;
-            save_auction(deps.storage, submitter, msg.token_id, minimum_bid_amount)?;
+            save_new_auction(deps.storage, submitter, msg.token_id, minimum_bid_amount)?;
             Ok(Response::new()) // TODO: add attributes
         }
         _ => Err(StdError::generic_err("unknown NFT receive hook message").into()),
@@ -95,7 +95,7 @@ pub fn bid(
 
     match auction {
         None => Err(AuctionIdNotFound),
-        Some(_) => {
+        Some(auction) => {
             match &info.funds[..] {
                 [coin] => {
                     // TODO: should we really accept more funds than specified?
@@ -105,6 +105,18 @@ pub fn bid(
                         let config = load_config(deps.storage)?;
                         if config.price_asset != PriceAsset::native(&coin.denom) {
                             Err(BidWrongAsset)
+                        } else if auction.minimum_bid_amount <= bid_amount {
+                            // TODO: provoke usage of proper ID
+                            update_active_bid(
+                                deps.storage,
+                                0,
+                                Bid {
+                                    amount: bid_amount,
+                                    asset: config.price_asset,
+                                    bidder: info.sender,
+                                },
+                            )?;
+                            Ok(Response::new()) // TODO: add attributes
                         } else {
                             Err(BidLowerThanMinimum)
                         }

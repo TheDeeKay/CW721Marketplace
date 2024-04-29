@@ -11,6 +11,13 @@ pub struct Config {
 }
 
 #[cw_serde]
+pub struct Bid {
+    pub amount: Uint128,
+    pub asset: PriceAsset,
+    pub bidder: Addr,
+}
+
+#[cw_serde]
 pub struct TrackAuction {
     /// ID of the auction posting
     pub id: AuctionId,
@@ -22,6 +29,7 @@ pub struct TrackAuction {
     pub track_token_id: String,
     pub minimum_bid_amount: Uint128,
     pub price_asset: PriceAsset,
+    pub active_bid: Option<Bid>,
 }
 
 #[cw_serde]

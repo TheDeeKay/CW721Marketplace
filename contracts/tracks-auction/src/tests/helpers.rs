@@ -11,6 +11,7 @@ use tracks_auction_api::msg::InstantiateMsg;
 pub const ADMIN: &str = "admin";
 
 pub const USER1: &str = "user1";
+pub const USER2: &str = "user2";
 
 pub const NFT_ADDR: &str = "nft_contract_addr";
 pub const NFT_ADDR2: &str = "another_nft_contract_addr";
@@ -79,7 +80,7 @@ pub fn create_test_auction(
 pub fn test_bid(
     deps: DepsMut,
     env: Env,
-    nft_contract: &str,
+    bidder: &str,
     auction_id: AuctionId,
     bid_amount: u8,
     bid_funds: &Vec<Coin>,
@@ -87,7 +88,7 @@ pub fn test_bid(
     bid(
         deps,
         env,
-        mock_info(nft_contract, bid_funds),
+        mock_info(bidder, bid_funds),
         auction_id,
         bid_amount.into(),
     )

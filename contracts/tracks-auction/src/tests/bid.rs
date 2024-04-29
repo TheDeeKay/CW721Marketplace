@@ -1,15 +1,17 @@
+use crate::query::query_auctions;
 use crate::tests::helpers::{
     create_test_auction, instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR,
-    TOKEN1, UANDR, UATOM, USER1,
+    TOKEN1, UANDR, UATOM, USER1, USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coin, coins};
+use cosmwasm_std::{coin, coins, Addr};
+use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, InsufficientFundsForBid,
     NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 
-// TODO: go through expected errors and modify them to (usually) be BidBelowMinimum or similar
+// TODO: go through expected errors and modify them to (usually) be BidBelowMinimum or similar, we can consolidate the myriad types of errors used
 
 #[test]
 fn bid_with_no_asset_fails() -> anyhow::Result<()> {
@@ -20,7 +22,7 @@ fn bid_with_no_asset_fails() -> anyhow::Result<()> {
 
     create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
 
-    let result = test_bid(deps.as_mut(), env.clone(), NFT_ADDR, 0, 0, &no_funds());
+    let result = test_bid(deps.as_mut(), env.clone(), USER2, 0, 0, &no_funds());
 
     assert_eq!(result, Err(NoBidFundsSupplied));
 
@@ -40,7 +42,7 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
     let result = test_bid(
         deps.as_mut(),
         env.clone(),
-        NFT_ADDR,
+        USER2,
         non_existent_auction_id,
         5,
         &coins(5, UANDR),
@@ -63,7 +65,7 @@ fn bid_with_multiple_native_assets_fails() -> anyhow::Result<()> {
     let result = test_bid(
         deps.as_mut(),
         env.clone(),
-        NFT_ADDR,
+        USER2,
         0,
         5,
         &vec![coin(5, UANDR), coin(1, UATOM)],
@@ -89,7 +91,7 @@ fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
     let result = test_bid(
         deps.as_mut(),
         env.clone(),
-        NFT_ADDR,
+        USER2,
         0,
         bid_amount,
         &coins(funds_for_bid, UANDR),
@@ -122,7 +124,7 @@ fn bid_less_than_minimum_bid_fails() -> anyhow::Result<()> {
     let result = test_bid(
         deps.as_mut(),
         env.clone(),
-        NFT_ADDR,
+        USER2,
         0,
         bid_amount,
         &coins(bid_amount.into(), UANDR),
@@ -148,13 +150,39 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
     let result = test_bid(
         deps.as_mut(),
         env.clone(),
-        NFT_ADDR,
+        USER2,
         0,
         5,
         &coins(5, bid_denom),
     );
 
     assert_eq!(result, Err(BidWrongAsset));
+
+    Ok(())
+}
+
+#[test]
+fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
+
+    let auctions = query_auctions(deps.as_ref())?.auctions;
+
+    // TODO: use something better than [0] here (probably query single auction)
+    assert_eq!(
+        auctions[0].active_bid,
+        Some(Bid {
+            amount: 5u8.into(),
+            asset: PriceAsset::native(UANDR),
+            bidder: Addr::unchecked(USER2),
+        })
+    );
 
     Ok(())
 }

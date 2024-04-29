@@ -111,6 +111,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
             track_token_id: track_token_id.to_string(),
             minimum_bid_amount: 4u128.into(),
             price_asset: PriceAsset::native(UATOM),
+            active_bid: None,
         }]
     );
 
