@@ -256,7 +256,26 @@ pub fn cancel_auction(
 
     update_auction_status(deps.storage, auction_id, Canceled)?;
 
-    Ok(Response::new()) // TODO: add attributes
+    let send_nft_back_submsg = SubMsg::new(wasm_execute(
+        auction.nft_contract.to_string(),
+        &TransferNft {
+            recipient: auction.creator.to_string(),
+            token_id: auction.track_token_id,
+        },
+        vec![],
+    )?);
+
+    let refund_bid_submsg = match auction.active_bid {
+        Some(bid) => vec![SubMsg::new(
+            Asset::new(bid.asset.to_asset_info(), bid.amount)
+                .transfer_msg(bid.bidder.to_string())?,
+        )],
+        None => vec![],
+    };
+
+    Ok(Response::new()
+        .add_submessage(send_nft_back_submsg)
+        .add_submessages(refund_bid_submsg)) // TODO: add attributes
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

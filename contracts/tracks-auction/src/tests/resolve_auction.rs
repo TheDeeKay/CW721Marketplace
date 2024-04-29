@@ -249,5 +249,4 @@ fn resolve_auction_that_was_canceled_fails() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: resolve cancelled auction fails
 // TODO: resolve instantly-bought auction fails
