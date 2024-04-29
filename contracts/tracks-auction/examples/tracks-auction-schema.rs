@@ -2,6 +2,7 @@ use cosmwasm_schema::schemars::schema_for;
 use cosmwasm_schema::{export_schema, remove_schemas};
 use std::env::current_dir;
 use std::fs::create_dir_all;
+use tracks_auction_api::api::{AuctionResponse, AuctionsResponse, ConfigResponse};
 use tracks_auction_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
@@ -13,4 +14,8 @@ fn main() {
     export_schema(&schema_for!(InstantiateMsg), &out_dir);
     export_schema(&schema_for!(ExecuteMsg), &out_dir);
     export_schema(&schema_for!(QueryMsg), &out_dir);
+
+    export_schema(&schema_for!(ConfigResponse), &out_dir);
+    export_schema(&schema_for!(AuctionResponse), &out_dir);
+    export_schema(&schema_for!(AuctionsResponse), &out_dir);
 }
