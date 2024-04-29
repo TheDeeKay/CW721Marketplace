@@ -14,8 +14,6 @@ use tracks_auction_api::error::AuctionError::{
     InsufficientFundsForBid, NoBidFundsSupplied, UnnecessaryAssetsForBid,
 };
 
-// TODO: go through expected errors and modify them to (usually) be BidBelowMinimum or similar, we can consolidate the myriad types of errors used
-
 #[test]
 fn bid_with_no_asset_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();

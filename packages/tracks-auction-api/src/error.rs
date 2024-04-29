@@ -21,12 +21,11 @@ pub enum AuctionError {
     #[error("Duration has to be greater than 0")]
     InvalidAuctionDuration,
 
-    // TODO: consolidate all the errors regarding invalid bid funds here, they're unnecessarily wide
-    #[error("Attempting to bid with no funds")]
-    NoBidFundsSupplied,
-
     #[error("No auction with given ID was found")]
     AuctionIdNotFound,
+
+    #[error("Attempting to bid with no funds")]
+    NoBidFundsSupplied,
 
     #[error("Trying to send assets not necessary for the bid")]
     UnnecessaryAssetsForBid,
