@@ -144,8 +144,9 @@ pub fn resolve_auction(
 
     update_auction_status(deps.storage, auction_id, Resolved)?;
 
-    // TODO: add attributes
-    let base_response = Response::new();
+    let base_response = Response::new()
+        .add_attribute("action", "resolve_auction")
+        .add_attribute("auction_id", auction_id.to_string());
 
     match auction.active_bid {
         Some(bid) => {

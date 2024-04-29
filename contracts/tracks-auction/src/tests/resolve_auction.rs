@@ -6,7 +6,7 @@ use crate::tests::helpers::{
     USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{coins, wasm_execute, SubMsg};
+use cosmwasm_std::{attr, coins, wasm_execute, SubMsg};
 use cw721::Cw721ExecuteMsg::TransferNft;
 use cw_asset::Asset;
 use cw_utils::Duration;
@@ -108,6 +108,11 @@ fn resolve_auction_height_duration_with_no_active_bid_refunds_nft() -> anyhow::R
             },
             vec![],
         )?)]
+    );
+
+    assert_eq!(
+        response.attributes,
+        vec![attr("action", "resolve_auction"), attr("auction_id", "0"),],
     );
 
     Ok(())
