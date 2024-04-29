@@ -64,56 +64,55 @@ pub fn bid(
     auction_id: AuctionId,
     bid_amount: Uint128,
 ) -> AuctionResult<Response> {
-    // TODO: refactor
-
     let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
 
     if auction.has_ended(&env.block) {
         return Err(BiddingAfterAuctionEnded);
     }
 
-    match &info.funds[..] {
-        [coin] => {
-            // TODO: should we really accept more funds than specified? should be a design decision
-            if coin.amount < bid_amount {
-                return Err(InsufficientFundsForBid);
-            }
-            let config = load_config(deps.storage)?;
-            if config.price_asset != PriceAsset::native(&coin.denom) {
-                Err(BidWrongAsset)
-            } else if auction.minimum_next_bid_amount() <= bid_amount {
-                let last_active_bid = update_active_bid(
-                    deps.storage,
-                    auction_id,
-                    Bid {
-                        amount: bid_amount,
-                        asset: config.price_asset,
-                        bidder: info.sender,
-                        posted_at: env.block,
-                    },
-                )?;
+    let bid_funds = match &info.funds[..] {
+        [coin] => coin.clone(),
+        [] => return Err(NoBidFundsSupplied),
+        _ => return Err(UnnecessaryAssetsForBid),
+    };
 
-                let base_response = Response::new()
-                    .add_attribute("action", "bid")
-                    .add_attribute("auction_id", auction_id.to_string())
-                    .add_attribute("bid_amount", bid_amount.to_string());
-
-                match last_active_bid {
-                    Some(bid) => {
-                        let refund_bid_submsg = SubMsg::new(
-                            Asset::native(&coin.denom, bid.amount).transfer_msg(bid.bidder)?,
-                        );
-                        Ok(base_response.add_submessage(refund_bid_submsg))
-                    }
-                    None => Ok(base_response),
-                }
-            } else {
-                Err(BidLowerThanMinimum)
-            }
-        }
-        [] => Err(NoBidFundsSupplied),
-        _ => Err(UnnecessaryAssetsForBid),
+    // TODO: should we really accept more funds than specified? should be a product design decision
+    if bid_funds.amount < bid_amount {
+        return Err(InsufficientFundsForBid);
     }
+
+    let config = load_config(deps.storage)?;
+
+    if config.price_asset != PriceAsset::native(&bid_funds.denom) {
+        return Err(BidWrongAsset);
+    } else if bid_amount < auction.minimum_next_bid_amount() {
+        return Err(BidLowerThanMinimum);
+    }
+
+    let last_active_bid = update_active_bid(
+        deps.storage,
+        auction_id,
+        Bid {
+            amount: bid_amount,
+            asset: config.price_asset,
+            bidder: info.sender,
+            posted_at: env.block,
+        },
+    )?;
+
+    let mut response = Response::new()
+        .add_attribute("action", "bid")
+        .add_attribute("auction_id", auction_id.to_string())
+        .add_attribute("bid_amount", bid_amount.to_string());
+
+    // if there was an active bid before this, refund it
+    if let Some(bid) = last_active_bid {
+        let refund_bid_submsg =
+            SubMsg::new(Asset::native(&bid_funds.denom, bid.amount).transfer_msg(bid.bidder)?);
+        response = response.add_submessage(refund_bid_submsg)
+    }
+
+    Ok(response)
 }
 
 pub fn resolve_auction(
