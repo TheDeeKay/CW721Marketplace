@@ -87,7 +87,7 @@ pub fn bid(
     _env: Env,
     info: MessageInfo,
     auction_id: AuctionId,
-    bid_amount: Uint128, // TODO: use (provoke by tests)
+    bid_amount: Uint128,
 ) -> AuctionResult<Response> {
     // TODO: refactor
 
