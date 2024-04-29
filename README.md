@@ -8,6 +8,11 @@ Additionally, auction creator can specify a buyout price at which the auction wi
 
 The auction contract will dictate which currency is used in auctions.
 
+| Contract                                                                                           | Description                                                                                                |                                                                                                                                 
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| [cw721-tracks](https://github.com/TheDeeKay/CW721Marketplace/tree/main/contracts/cw721-tracks)     | Modified CW721 contract with permissionless minting and on-chain metadata for tracks.                      |
+| [tracks-auction](https://github.com/TheDeeKay/CW721Marketplace/tree/main/contracts/tracks-auction) | Contract enabling creation and management of auctions for track NFTs, allowing artists to sell their work. |  
+
 ## Product design choices
 
 ### Permissionless NFT minting, no track-uniqueness check
@@ -18,6 +23,10 @@ Artists have to use traditional channels to communicate to their audience which 
 ### No contract fees
 Real-world application would almost certainly have some form of fees. The feature was not requested, so it was scoped
 out in the interest of time.
+
+### No auction spam prevention
+There is no maximum number of open auctions, auction deposit, maximum auction duration, etc. In the real world, those
+mechanisms would be necessary to avoid malicious spam.
 
 ## Technical implementation choices and details
 
