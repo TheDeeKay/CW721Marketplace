@@ -228,6 +228,8 @@ pub fn cancel_auction(
     };
 
     Ok(Response::new()
+        .add_attribute("action", "cancel_auction")
+        .add_attribute("auction_id", auction_id.to_string())
         .add_submessage(send_nft_back_submsg)
-        .add_submessages(refund_bid_submsg)) // TODO: add attributes
+        .add_submessages(refund_bid_submsg))
 }

@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     USER2,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coins, wasm_execute, SubMsg};
+use cosmwasm_std::{attr, coins, wasm_execute, SubMsg};
 use cw721::Cw721ExecuteMsg::TransferNft;
 use cw_asset::Asset;
 use cw_utils::Duration::Time;
@@ -147,6 +147,11 @@ fn cancel_auction_with_no_bids_sends_back_nft_to_creator() -> anyhow::Result<()>
             },
             vec![]
         )?)]
+    );
+
+    assert_eq!(
+        response.attributes,
+        vec![attr("action", "cancel_auction"), attr("auction_id", "0"),],
     );
 
     Ok(())
