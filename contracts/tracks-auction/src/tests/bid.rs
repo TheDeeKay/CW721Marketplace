@@ -1,7 +1,7 @@
 use crate::query::query_auction;
 use crate::tests::helpers::{
     create_test_auction, instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR,
-    TOKEN1, UANDR, UATOM, USER1, USER2,
+    TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{coin, coins, Addr};
@@ -182,6 +182,41 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
             bidder: Addr::unchecked(USER2),
         })
     );
+
+    Ok(())
+}
+
+#[test]
+fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    let first_bid_amount = 5;
+    let second_bid_amount = first_bid_amount;
+
+    test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER2,
+        0,
+        first_bid_amount,
+        &coins(first_bid_amount.into(), UANDR),
+    )?;
+
+    let result = test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER3,
+        0,
+        second_bid_amount,
+        &coins(second_bid_amount.into(), UANDR),
+    );
+
+    assert_eq!(result, Err(BidLowerThanMinimum));
 
     Ok(())
 }

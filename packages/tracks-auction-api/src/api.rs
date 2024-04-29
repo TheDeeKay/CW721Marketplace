@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Uint128};
+use std::ops::Add;
 
 pub type AuctionId = u64;
 
@@ -30,6 +31,16 @@ pub struct TrackAuction {
     pub minimum_bid_amount: Uint128,
     pub price_asset: PriceAsset,
     pub active_bid: Option<Bid>,
+}
+
+impl TrackAuction {
+    /// Calculate what the minimum amount should be for the next bid
+    pub fn minimum_next_bid_amount(&self) -> Uint128 {
+        match &self.active_bid {
+            None => self.minimum_bid_amount,
+            Some(bid) => bid.amount.add(Uint128::from(1u8)),
+        }
+    }
 }
 
 #[cw_serde]

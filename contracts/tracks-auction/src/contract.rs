@@ -105,7 +105,7 @@ pub fn bid(
                         let config = load_config(deps.storage)?;
                         if config.price_asset != PriceAsset::native(&coin.denom) {
                             Err(BidWrongAsset)
-                        } else if auction.minimum_bid_amount <= bid_amount {
+                        } else if auction.minimum_next_bid_amount() <= bid_amount {
                             // TODO: provoke usage of proper ID
                             update_active_bid(
                                 deps.storage,

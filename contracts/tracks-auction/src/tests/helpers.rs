@@ -12,6 +12,7 @@ pub const ADMIN: &str = "admin";
 
 pub const USER1: &str = "user1";
 pub const USER2: &str = "user2";
+pub const USER3: &str = "user3";
 
 pub const NFT_ADDR: &str = "nft_contract_addr";
 pub const NFT_ADDR2: &str = "another_nft_contract_addr";
