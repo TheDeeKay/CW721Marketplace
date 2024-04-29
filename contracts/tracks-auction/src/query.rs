@@ -16,8 +16,11 @@ pub fn query_auction(deps: Deps, id: AuctionId) -> AuctionResult<AuctionResponse
     Ok(AuctionResponse { auction })
 }
 
-// TODO: include limit and start_after (we'll probably need an ID inside the Auction structure then
-pub fn query_auctions(deps: Deps) -> AuctionResult<AuctionsResponse> {
-    let auctions = load_auctions(deps.storage)?;
+pub fn query_auctions(
+    deps: Deps,
+    start_after: Option<AuctionId>,
+    limit: Option<u32>,
+) -> AuctionResult<AuctionsResponse> {
+    let auctions = load_auctions(deps.storage, start_after, limit)?;
     Ok(AuctionsResponse { auctions })
 }

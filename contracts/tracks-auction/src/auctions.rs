@@ -1,12 +1,15 @@
 use crate::config::load_config;
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{Addr, BlockInfo, StdResult, Storage, Uint128};
-use cw_storage_plus::{Item, Map};
+use cw_storage_plus::{Bound, Item, Map};
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, AuctionStatus, Bid, TrackAuction};
 use tracks_auction_api::error::AuctionError::AuctionIdNotFound;
 use tracks_auction_api::error::AuctionResult;
 use AuctionStatus::Active;
+
+const DEFAULT_AUCTIONS_QUERY_LIMIT: u32 = 20;
+const MAX_AUCTIONS_QUERY_LIMIT: u32 = 100;
 
 const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
 
@@ -88,11 +91,19 @@ pub fn update_auction_status(
     Ok(())
 }
 
-pub fn load_auctions(storage: &dyn Storage) -> AuctionResult<Vec<TrackAuction>> {
-    // TODO: use limit and start_after
+pub fn load_auctions(
+    storage: &dyn Storage,
+    start_after: Option<AuctionId>,
+    limit: Option<u32>,
+) -> AuctionResult<Vec<TrackAuction>> {
+    let start_after = start_after.map(Bound::exclusive);
+    let limit = limit
+        .unwrap_or(DEFAULT_AUCTIONS_QUERY_LIMIT)
+        .min(MAX_AUCTIONS_QUERY_LIMIT);
 
     Ok(AUCTIONS_MAP
-        .range(storage, None, None, Ascending)
+        .range(storage, start_after, None, Ascending)
+        .take(limit as usize)
         .map(|res| res.map(|(_, auction)| auction))
         .collect::<StdResult<Vec<TrackAuction>>>()?)
 }

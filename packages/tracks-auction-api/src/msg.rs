@@ -61,5 +61,10 @@ pub enum QueryMsg {
     #[returns(AuctionResponse)]
     Auction { id: AuctionId },
     #[returns(AuctionsResponse)]
-    Auctions {},
+    Auctions {
+        /// Optional parameter to start listing items after a certain ID (used for pagination)
+        start_after: Option<AuctionId>,
+        /// Optional parameter to limit the size of query response
+        limit: Option<u32>,
+    },
 }
