@@ -2,8 +2,8 @@ use crate::auctions::{load_auction, save_new_auction, update_active_bid};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
-    entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError, Uint128,
+    coins, entry_point, from_json, to_json_binary, BankMsg, Binary, Deps, DepsMut, Env,
+    MessageInfo, Response, StdError, SubMsg, Uint128,
 };
 use cw721::Cw721ReceiveMsg;
 use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
@@ -107,7 +107,7 @@ pub fn bid(
                             Err(BidWrongAsset)
                         } else if auction.minimum_next_bid_amount() <= bid_amount {
                             // TODO: provoke usage of proper ID
-                            update_active_bid(
+                            let last_active_bid = update_active_bid(
                                 deps.storage,
                                 0,
                                 Bid {
@@ -116,7 +116,19 @@ pub fn bid(
                                     bidder: info.sender,
                                 },
                             )?;
-                            Ok(Response::new()) // TODO: add attributes
+
+                            let base_response = Response::new(); // TODO: add attributes
+
+                            match last_active_bid {
+                                Some(bid) => {
+                                    // TODO: use cw-asset helper for sending here
+                                    Ok(base_response.add_submessage(SubMsg::new(BankMsg::Send {
+                                        to_address: bid.bidder.to_string(),
+                                        amount: coins(bid.amount.u128(), coin.denom.clone()),
+                                    })))
+                                }
+                                None => Ok(base_response),
+                            }
                         } else {
                             Err(BidLowerThanMinimum)
                         }

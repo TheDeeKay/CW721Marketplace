@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coin, coins, Addr};
+use cosmwasm_std::{coin, coins, Addr, BankMsg, SubMsg};
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, InsufficientFundsForBid,
@@ -170,7 +170,9 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
 
     create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
 
-    test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
+    let response = test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
+
+    assert!(response.messages.is_empty());
 
     let auction = query_auction(deps.as_ref(), 0)?.auction;
 
@@ -217,6 +219,55 @@ fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
     );
 
     assert_eq!(result, Err(BidLowerThanMinimum));
+
+    Ok(())
+}
+
+#[test]
+fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(deps.as_mut(), env.clone(), NFT_ADDR, TOKEN1, USER1, 5)?;
+
+    let first_bid_amount = 5;
+    let second_bid_amount = 6;
+
+    test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER2,
+        0,
+        first_bid_amount,
+        &coins(first_bid_amount.into(), UANDR),
+    )?;
+
+    let response = test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER3,
+        0,
+        second_bid_amount,
+        &coins(second_bid_amount.into(), UANDR),
+    )?;
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: USER2.to_string(),
+        amount: coins(first_bid_amount.into(), UANDR)
+    })));
+
+    let auction = query_auction(deps.as_ref(), 0)?.auction;
+
+    assert_eq!(
+        auction.active_bid,
+        Some(Bid {
+            amount: second_bid_amount.into(),
+            asset: PriceAsset::native(UANDR),
+            bidder: Addr::unchecked(USER3),
+        })
+    );
 
     Ok(())
 }

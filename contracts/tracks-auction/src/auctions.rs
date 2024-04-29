@@ -38,14 +38,15 @@ pub fn save_new_auction(
 }
 
 /// Updates active bid on the given auction ID.
-// TODO: make it return what's described below
 /// Returns last active bid, or None if no previous bid on this auction existed.
 pub fn update_active_bid(
     storage: &mut dyn Storage,
     auction_id: AuctionId,
     new_active_bid: Bid,
-) -> AuctionResult<()> {
+) -> AuctionResult<Option<Bid>> {
     let auction = load_auction(storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    // TODO: also store the last bid for historical reasons?
 
     AUCTIONS_MAP.save(
         storage,
@@ -56,7 +57,7 @@ pub fn update_active_bid(
         },
     )?;
 
-    Ok(())
+    Ok(auction.active_bid)
 }
 
 pub fn load_auctions(storage: &dyn Storage) -> AuctionResult<Vec<TrackAuction>> {
