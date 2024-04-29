@@ -1,10 +1,10 @@
+use crate::api::PriceAsset::Cw20;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, Uint128};
+use cosmwasm_std::{Addr, Api, BlockInfo, StdResult, Uint128};
 use cw_asset::AssetInfo;
 use cw_utils::Duration;
 use cw_utils::Duration::{Height, Time};
 use std::ops::Add;
-use strum_macros::Display;
 use PriceAsset::Native;
 
 pub type AuctionId = u64;
@@ -70,10 +70,26 @@ impl TrackAuction {
 }
 
 #[cw_serde]
-#[derive(Display)]
+pub enum PriceAssetUnchecked {
+    Native { denom: String },
+    Cw20 { contract: String },
+}
+
+impl PriceAssetUnchecked {
+    pub fn check(&self, api: &dyn Api) -> StdResult<PriceAsset> {
+        match self {
+            PriceAssetUnchecked::Native { denom } => Ok(PriceAsset::native(denom)),
+            PriceAssetUnchecked::Cw20 { contract } => {
+                Ok(PriceAsset::cw20(api.addr_validate(contract)?))
+            }
+        }
+    }
+}
+
+#[cw_serde]
 pub enum PriceAsset {
     Native { denom: String },
-    // TODO: add CW20 here as well (once we do, we need to split this into PriceAssetUnchecked as well)
+    Cw20 { contract: Addr },
 }
 
 impl PriceAsset {
@@ -83,9 +99,14 @@ impl PriceAsset {
         }
     }
 
+    pub fn cw20(contract: Addr) -> Self {
+        Cw20 { contract }
+    }
+
     pub fn to_asset_info(&self) -> AssetInfo {
         match self {
             Native { denom } => AssetInfo::native(denom),
+            Cw20 { contract } => AssetInfo::cw20(contract.clone()),
         }
     }
 }

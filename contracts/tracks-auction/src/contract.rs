@@ -8,7 +8,7 @@ use tracks_auction_api::api::{Config, PriceAsset};
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use ExecuteMsg::{Bid, CancelAuction, ReceiveNft, ResolveAuction};
-use PriceAsset::Native;
+use PriceAsset::{Cw20, Native};
 use QueryMsg::{Auction, Auctions};
 
 // Version info for migration
@@ -34,6 +34,11 @@ pub fn instantiate(
 
     let price_asset_attributes = match &config.price_asset {
         Native { denom } => vec![("price_asset", "native"), ("price_asset_denom", denom)],
+        // TODO: add tests for this
+        Cw20 { contract } => vec![
+            ("price_asset", "cw20"),
+            ("price_asset_cw20_contract", contract.as_ref()),
+        ],
     };
 
     Ok(Response::new()
