@@ -138,6 +138,11 @@ fn resolve_bid(
 
     let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
 
+    // do not allow self-bidding
+    if bidder == auction.creator {
+        return Err(Unauthorized);
+    }
+
     if auction.has_ended(&env.block) {
         return Err(BiddingAfterAuctionEnded);
     }

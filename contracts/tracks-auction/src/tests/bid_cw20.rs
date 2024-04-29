@@ -11,7 +11,7 @@ use tracks_auction_api::api::AuctionStatus::Resolved;
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded,
-    InsufficientFundsForBid,
+    InsufficientFundsForBid, Unauthorized,
 };
 
 // TODO: those tests are essentially duplicates of native bids, abstract away to cut down on code duplication
@@ -82,6 +82,31 @@ fn bid_cw20_with_insufficient_funds_fails() -> anyhow::Result<()> {
     );
 
     assert_eq!(result, Err(InsufficientFundsForBid));
+
+    Ok(())
+}
+
+#[test]
+fn bid_cw20_on_own_auction_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_cw20_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, CW20_ADDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+        None,
+    )?;
+
+    let result = test_cw20_bid(deps.as_mut(), env.clone(), USER1, 0, 5, 5, &CW20_ADDR);
+
+    assert_eq!(result, Err(Unauthorized));
 
     Ok(())
 }
