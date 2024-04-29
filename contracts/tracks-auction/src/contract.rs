@@ -36,7 +36,6 @@ pub fn instantiate(
 
     let price_asset_attributes = match &config.price_asset {
         Native { denom } => vec![("price_asset", "native"), ("price_asset_denom", denom)],
-        // TODO: add tests for this
         Cw20 { contract } => vec![
             ("price_asset", "cw20"),
             ("price_asset_cw20_contract", contract.as_ref()),
