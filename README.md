@@ -55,3 +55,21 @@ more 'traditional' approach.
 ### No handles for changing configuration
 tracks-auction features no admin or handles to change configuration. This was chosen to keep the scope smaller, although
 a true production contract would need this.
+
+## Running tests
+
+The contracts are covered by a TDD suite of unit and integration tests.
+All tests can be run from the root directory by running:
+`cargo test`
+
+## Building the contracts
+
+To build (size-optimized) .wasm files for contracts, you need Docker installed and running.
+After that, run `./build.sh` from the root directory.
+
+The .wasm files will be output in `artifacts` directory.
+
+### Developing on Apple-silicon machines
+
+For Apple devices running on Apple-made silicon, you can run `./build-arm64.sh` during development.
+This will speed up the compilation process significantly.
