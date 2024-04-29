@@ -186,20 +186,11 @@ fn buyout_auction(
     bid_asset: PriceAsset,
     bid_amount: Uint128,
 ) -> AuctionResult<Response> {
-    // TODO: extract send NFT and send assets msgs
-
-    let send_nft_to_buyer_msg = SubMsg::new(wasm_execute(
-        auction.nft_contract.to_string(),
-        &TransferNft {
-            recipient: bidder.to_string(),
-            token_id: auction.track_token_id.to_string(),
-        },
-        vec![],
-    )?);
+    let send_nft_to_buyer_msg =
+        transfer_nft_msg(auction.nft_contract, bidder, auction.track_token_id)?;
 
     let send_bid_amount_msg = SubMsg::new(
-        Asset::new(bid_asset.to_asset_info(), bid_amount)
-            .transfer_msg(auction.creator.to_string())?,
+        Asset::new(bid_asset.to_asset_info(), bid_amount).transfer_msg(auction.creator)?,
     );
 
     update_auction_status(deps.storage, auction.id, Resolved)?;
@@ -249,34 +240,24 @@ pub fn resolve_auction(
     match auction.active_bid {
         Some(bid) => {
             // send NFT to the highest bidder
-            let award_nft_submsg = SubMsg::new(wasm_execute(
-                auction.nft_contract.to_string(),
-                &TransferNft {
-                    recipient: bid.bidder.to_string(),
-                    token_id: auction.track_token_id,
-                },
-                vec![],
-            )?);
+            let send_nft_to_bidder_msg =
+                transfer_nft_msg(auction.nft_contract, bid.bidder, auction.track_token_id)?;
             // send funds to the auction creator
-            let award_bid_submsg = SubMsg::new(
-                Asset::new(bid.asset.to_asset_info(), bid.amount)
-                    .transfer_msg(auction.creator.to_string())?,
+            let send_bid_to_auction_creator_msg = SubMsg::new(
+                Asset::new(bid.asset.to_asset_info(), bid.amount).transfer_msg(auction.creator)?,
             );
 
             Ok(base_response
-                .add_submessage(award_nft_submsg)
-                .add_submessage(award_bid_submsg))
+                .add_submessage(send_nft_to_bidder_msg)
+                .add_submessage(send_bid_to_auction_creator_msg))
         }
         None => {
             // received no bids, simply return the NFT to the auction creator
-            let return_nft_submsg = SubMsg::new(wasm_execute(
-                auction.nft_contract.to_string(),
-                &TransferNft {
-                    recipient: auction.creator.to_string(),
-                    token_id: auction.track_token_id,
-                },
-                vec![],
-            )?);
+            let return_nft_submsg = transfer_nft_msg(
+                auction.nft_contract,
+                auction.creator,
+                auction.track_token_id,
+            )?;
             Ok(base_response.add_submessage(return_nft_submsg))
         }
     }
@@ -308,19 +289,15 @@ pub fn cancel_auction(
 
     update_auction_status(deps.storage, auction_id, Canceled)?;
 
-    let send_nft_back_submsg = SubMsg::new(wasm_execute(
-        auction.nft_contract.to_string(),
-        &TransferNft {
-            recipient: auction.creator.to_string(),
-            token_id: auction.track_token_id,
-        },
-        vec![],
-    )?);
+    let send_nft_back_submsg = transfer_nft_msg(
+        auction.nft_contract,
+        auction.creator,
+        auction.track_token_id,
+    )?;
 
     let refund_bid_submsg = match auction.active_bid {
         Some(bid) => vec![SubMsg::new(
-            Asset::new(bid.asset.to_asset_info(), bid.amount)
-                .transfer_msg(bid.bidder.to_string())?,
+            Asset::new(bid.asset.to_asset_info(), bid.amount).transfer_msg(bid.bidder)?,
         )],
         None => vec![],
     };
@@ -330,4 +307,19 @@ pub fn cancel_auction(
         .add_attribute("auction_id", auction_id.to_string())
         .add_submessage(send_nft_back_submsg)
         .add_submessages(refund_bid_submsg))
+}
+
+fn transfer_nft_msg(
+    nft_contract: impl Into<String>,
+    recipient: impl Into<String>,
+    token_id: String,
+) -> AuctionResult<SubMsg> {
+    Ok(SubMsg::new(wasm_execute(
+        nft_contract.into(),
+        &TransferNft {
+            recipient: recipient.into(),
+            token_id,
+        },
+        vec![],
+    )?))
 }

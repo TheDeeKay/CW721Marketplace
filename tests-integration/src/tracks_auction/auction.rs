@@ -128,6 +128,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
             minimum_bid_amount: 4u128.into(),
             price_asset: PriceAsset::native(UATOM),
             active_bid: None,
+            buyout_price: Some(200u8.into()),
         }]
     );
 
