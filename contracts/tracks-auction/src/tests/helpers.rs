@@ -1,4 +1,5 @@
-use crate::contract::{bid, cancel_auction, instantiate, receive_nft, resolve_auction};
+use crate::contract::instantiate;
+use crate::execute::{bid, cancel_auction, receive_nft, resolve_auction};
 use cosmwasm_std::testing::mock_info;
 use cosmwasm_std::{to_json_binary, BlockInfo, Coin, DepsMut, Env, Response};
 use cw721::Cw721ReceiveMsg;

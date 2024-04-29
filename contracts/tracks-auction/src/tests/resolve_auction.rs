@@ -1,4 +1,4 @@
-use crate::contract::resolve_auction;
+use crate::execute::resolve_auction;
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,

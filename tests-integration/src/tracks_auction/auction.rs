@@ -105,9 +105,13 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         &vec![],
     )?;
 
-    let response: AuctionsResponse = app
-        .wrap()
-        .query_wasm_smart(tracks_auction.clone(), &Auctions { start_after: None, limit: None })?;
+    let response: AuctionsResponse = app.wrap().query_wasm_smart(
+        tracks_auction.clone(),
+        &Auctions {
+            start_after: None,
+            limit: None,
+        },
+    )?;
 
     assert_eq!(
         response.auctions,
