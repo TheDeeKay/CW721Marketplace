@@ -15,15 +15,19 @@ const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
 
 const AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("auctions");
 
+pub struct CreateAuctionData {
+    pub duration: Duration,
+    pub creator: Addr,
+    pub nft_contract: Addr,
+    pub track_token_id: String,
+    pub minimum_bid_amount: Uint128,
+    pub buyout_price: Option<Uint128>,
+}
+
 pub fn save_new_auction(
     storage: &mut dyn Storage,
     current_block: BlockInfo,
-    duration: Duration,
-    creator: Addr,
-    nft_contract: Addr,
-    track_token_id: String,
-    minimum_bid_amount: Uint128,
-    buyout_price: Option<Uint128>,
+    auction_data: CreateAuctionData,
 ) -> AuctionResult<AuctionId> {
     let next_auction_id = NEXT_AUCTION_ID.may_load(storage)?.unwrap_or_default();
     NEXT_AUCTION_ID.save(storage, &(next_auction_id + 1))?;
@@ -36,15 +40,15 @@ pub fn save_new_auction(
         &TrackAuction {
             status: Active,
             created_at: current_block,
-            duration,
+            duration: auction_data.duration,
             id: next_auction_id,
-            creator,
-            nft_contract,
-            track_token_id,
-            minimum_bid_amount,
+            creator: auction_data.creator,
+            nft_contract: auction_data.nft_contract,
+            track_token_id: auction_data.track_token_id,
+            minimum_bid_amount: auction_data.minimum_bid_amount,
             price_asset: config.price_asset,
             active_bid: None,
-            buyout_price,
+            buyout_price: auction_data.buyout_price,
         },
     )?;
 

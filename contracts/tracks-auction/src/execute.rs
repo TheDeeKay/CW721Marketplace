@@ -1,4 +1,6 @@
-use crate::auctions::{load_auction, save_new_auction, update_active_bid, update_auction_status};
+use crate::auctions::{
+    load_auction, save_new_auction, update_active_bid, update_auction_status, CreateAuctionData,
+};
 use crate::config::load_config;
 use cosmwasm_std::{
     from_json, wasm_execute, Addr, DepsMut, Env, MessageInfo, Response, StdError, SubMsg, Uint128,
@@ -42,17 +44,20 @@ pub fn receive_nft(
             if duration == Time(0) || duration == Height(0) {
                 return Err(InvalidAuctionDuration);
             }
-            let submitter = deps.api.addr_validate(&msg.sender)?;
-            let id = save_new_auction(
-                deps.storage,
-                env.block,
+
+            let creator = deps.api.addr_validate(&msg.sender)?;
+
+            let auction_data = CreateAuctionData {
                 duration,
-                submitter,
-                info.sender,
-                msg.token_id,
+                creator,
+                nft_contract: info.sender,
+                track_token_id: msg.token_id,
                 minimum_bid_amount,
                 buyout_price,
-            )?;
+            };
+
+            let id = save_new_auction(deps.storage, env.block, auction_data)?;
+
             Ok(Response::new()
                 .add_attribute("action", "create_auction")
                 .add_attribute("auction_id", id.to_string()))
