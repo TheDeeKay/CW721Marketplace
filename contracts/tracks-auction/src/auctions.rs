@@ -1,12 +1,12 @@
 use crate::config::load_config;
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::{Addr, BlockInfo, StdResult, Storage, Uint128};
+use cosmwasm_std::{Addr, BlockInfo, StdError, StdResult, Storage, Uint128};
 use cw_storage_plus::{Bound, Item, Map};
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, AuctionStatus, Bid, TrackAuction};
 use tracks_auction_api::error::AuctionError::AuctionIdNotFound;
 use tracks_auction_api::error::AuctionResult;
-use AuctionStatus::Active;
+use AuctionStatus::{Active, Canceled, Resolved};
 
 const DEFAULT_AUCTIONS_QUERY_LIMIT: u32 = 20;
 const MAX_AUCTIONS_QUERY_LIMIT: u32 = 100;
@@ -84,6 +84,19 @@ pub fn update_auction_status(
     new_status: AuctionStatus,
 ) -> AuctionResult<()> {
     let auction = load_auction(storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    // only Active status can be changed, others are final
+    match auction.status {
+        Resolved | Canceled => {
+            return Err(StdError::generic_err(
+                "invalid state - can only change status of an active auction",
+            )
+            .into())
+        }
+        Active => {
+            // no-op, can be changed
+        }
+    }
 
     AUCTIONS_MAP.save(
         storage,

@@ -93,6 +93,33 @@ fn cancel_auction_on_resolved_auction_fails() -> anyhow::Result<()> {
 }
 
 #[test]
+fn cancel_auction_on_instantly_bought_auction_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Time(20),
+        5,
+        Some(20),
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 20, &coins(20, UANDR))?;
+
+    let result = test_cancel_auction(deps.as_mut(), env, USER1, 0);
+
+    assert_eq!(result, Err(AuctionResolved));
+
+    Ok(())
+}
+
+#[test]
 fn cancel_auction_on_canceled_auction_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();

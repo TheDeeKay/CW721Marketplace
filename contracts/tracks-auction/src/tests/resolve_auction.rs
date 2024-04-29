@@ -239,4 +239,29 @@ fn resolve_auction_that_was_canceled_fails() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO: resolve instantly-bought auction fails
+#[test]
+fn resolve_auction_that_was_instantly_bought_fails() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        Height(15),
+        5,
+        Some(20),
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 20, &coins(20, UANDR))?;
+
+    let result = test_resolve_auction(deps.as_mut(), after_height(&env, 16), USER1, 0);
+
+    assert_eq!(result, Err(AuctionResolved));
+
+    Ok(())
+}
