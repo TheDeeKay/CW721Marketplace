@@ -14,5 +14,6 @@ cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 cw721-tracks-api = { workspace = true }
 cw-utils = { workspace = true }
+cw-asset = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

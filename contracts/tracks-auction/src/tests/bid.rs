@@ -4,7 +4,8 @@ use crate::tests::helpers::{
     TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coin, coins, Addr, BankMsg, SubMsg};
+use cosmwasm_std::{coin, coins, Addr, SubMsg};
+use cw_asset::Asset;
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, InsufficientFundsForBid,
@@ -253,10 +254,12 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
         &coins(second_bid_amount.into(), UANDR),
     )?;
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: USER2.to_string(),
-        amount: coins(first_bid_amount.into(), UANDR)
-    })));
+    assert_eq!(
+        response.messages,
+        vec![SubMsg::new(
+            Asset::native(UANDR, first_bid_amount).transfer_msg(USER2)?
+        )],
+    );
 
     let auction = query_auction(deps.as_ref(), 0)?.auction;
 

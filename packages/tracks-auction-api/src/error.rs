@@ -1,4 +1,5 @@
 use cosmwasm_std::StdError;
+use cw_asset::AssetError;
 use thiserror::Error;
 
 pub type AuctionResult<T> = Result<T, AuctionError>;
@@ -7,6 +8,9 @@ pub type AuctionResult<T> = Result<T, AuctionError>;
 pub enum AuctionError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error("{0}")]
+    AssetError(#[from] AssetError),
 
     #[error("CW721 you're using is not whitelisted for auctions")]
     Cw721NotWhitelisted,

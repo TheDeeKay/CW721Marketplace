@@ -2,10 +2,11 @@ use crate::auctions::{load_auction, save_new_auction, update_active_bid};
 use crate::config::{load_config, save_config};
 use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
-    coins, entry_point, from_json, to_json_binary, BankMsg, Binary, Deps, DepsMut, Env,
-    MessageInfo, Response, StdError, SubMsg, Uint128,
+    entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    StdError, SubMsg, Uint128,
 };
 use cw721::Cw721ReceiveMsg;
+use cw_asset::Asset;
 use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, Cw721NotWhitelisted,
@@ -121,11 +122,11 @@ pub fn bid(
 
                             match last_active_bid {
                                 Some(bid) => {
-                                    // TODO: use cw-asset helper for sending here
-                                    Ok(base_response.add_submessage(SubMsg::new(BankMsg::Send {
-                                        to_address: bid.bidder.to_string(),
-                                        amount: coins(bid.amount.u128(), coin.denom.clone()),
-                                    })))
+                                    let refund_bid_submsg = SubMsg::new(
+                                        Asset::native(&coin.denom, bid.amount)
+                                            .transfer_msg(bid.bidder)?,
+                                    );
+                                    Ok(base_response.add_submessage(refund_bid_submsg))
                                 }
                                 None => Ok(base_response),
                             }
