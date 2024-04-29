@@ -50,6 +50,8 @@ pub struct TrackAuction {
     pub price_asset: PriceAsset,
     /// Last (highest) bid, if any.
     pub active_bid: Option<Bid>,
+    /// Price that, if specified and offered in a bid, immediately ends the auctions and wins it.
+    pub buyout_price: Option<Uint128>,
 }
 
 impl TrackAuction {

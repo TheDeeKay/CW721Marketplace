@@ -27,6 +27,7 @@ fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
         ADMIN,
         default_duration(),
         0,
+        None,
     );
 
     assert_eq!(result, Err(Cw721NotWhitelisted));
@@ -49,6 +50,7 @@ fn create_auction_with_time_0_duration_fails() -> anyhow::Result<()> {
         ADMIN,
         Time(0),
         0,
+        Some(200),
     );
 
     assert_eq!(result, Err(InvalidAuctionDuration));
@@ -71,6 +73,7 @@ fn create_auction_with_height_0_duration_fails() -> anyhow::Result<()> {
         ADMIN,
         Height(0),
         0,
+        None,
     );
 
     assert_eq!(result, Err(InvalidAuctionDuration));
@@ -105,6 +108,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         USER1,
         duration.clone(),
         4,
+        Some(213),
     )?;
 
     assert_eq!(
@@ -123,6 +127,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
         minimum_bid_amount: 4u8.into(),
         price_asset: PriceAsset::native("uatom"),
         active_bid: None,
+        buyout_price: Some(213u8.into()),
     };
 
     let response = query_auction(deps.as_ref(), 0)?;
@@ -160,6 +165,7 @@ fn create_auction_increments_auction_ids() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         4,
+        Some(200),
     )?;
 
     create_test_auction(
@@ -170,6 +176,7 @@ fn create_auction_increments_auction_ids() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         4,
+        None,
     )?;
 
     assert_eq!(query_auction(deps.as_ref(), 0)?.auction.id, 0);

@@ -27,6 +27,7 @@ fn cancel_auction_only_permitted_to_auction_creator() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let result = test_cancel_auction(deps.as_mut(), env, USER2, 0);
@@ -51,6 +52,7 @@ fn cancel_auction_on_expired_auction_fails() -> anyhow::Result<()> {
         USER1,
         Time(20),
         5,
+        None,
     )?;
 
     let result = test_cancel_auction(deps.as_mut(), after_seconds(&env, 21), USER1, 0);
@@ -75,6 +77,7 @@ fn cancel_auction_on_resolved_auction_fails() -> anyhow::Result<()> {
         USER1,
         Time(20),
         5,
+        None,
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
@@ -105,6 +108,7 @@ fn cancel_auction_on_canceled_auction_fails() -> anyhow::Result<()> {
         USER1,
         Time(20),
         5,
+        None,
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
@@ -133,6 +137,7 @@ fn cancel_auction_with_no_bids_sends_back_nft_to_creator() -> anyhow::Result<()>
         USER1,
         Time(20),
         5,
+        Some(200),
     )?;
 
     let response = test_cancel_auction(deps.as_mut(), env.clone(), USER1, 0)?;
@@ -172,6 +177,7 @@ fn cancel_auction_with_bid_sends_back_nft_to_creator_and_bid_to_bidder() -> anyh
         USER1,
         Time(20),
         5,
+        Some(200),
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;

@@ -5,9 +5,11 @@ use crate::tests::helpers::{
     NFT_ADDR, TOKEN1, UANDR, UATOM, USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{attr, coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
+use cosmwasm_std::{attr, coin, coins, wasm_execute, Addr, BlockInfo, Env, SubMsg, Timestamp};
+use cw721::Cw721ExecuteMsg::TransferNft;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
+use tracks_auction_api::api::AuctionStatus::Resolved;
 use tracks_auction_api::api::{Bid, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
     AuctionIdNotFound, BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded,
@@ -29,6 +31,7 @@ fn bid_with_no_asset_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let result = test_bid(deps.as_mut(), env.clone(), USER2, 0, 0, &no_funds());
@@ -53,6 +56,7 @@ fn bid_on_non_existent_auction_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let non_existent_auction_id = 2;
@@ -85,6 +89,7 @@ fn bid_with_multiple_native_assets_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let result = test_bid(
@@ -116,6 +121,7 @@ fn bid_with_insufficient_funds_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let bid_amount = 5;
@@ -153,6 +159,7 @@ fn bid_less_than_minimum_bid_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         minimum_bid_amount,
+        None,
     )?;
 
     let result = test_bid(
@@ -187,6 +194,7 @@ fn bid_wrong_asset_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let result = test_bid(
@@ -218,6 +226,7 @@ fn bid_cw20_asset_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let result = test_cw20_bid(deps.as_mut(), env.clone(), USER2, 0, 5, 5, CW20_ADDR);
@@ -250,6 +259,7 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let response = test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
@@ -302,6 +312,7 @@ fn bid_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::R
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     create_test_auction(
@@ -312,6 +323,7 @@ fn bid_on_second_auction_saves_it_as_active_bid_on_proper_auction() -> anyhow::R
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 1, 5, &coins(5, UANDR))?;
@@ -349,6 +361,7 @@ fn bid_after_existing_bid_at_current_amount_fails() -> anyhow::Result<()> {
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let first_bid_amount = 5;
@@ -392,6 +405,7 @@ fn bid_over_existing_bid_replaces_and_refunds_existing_bid() -> anyhow::Result<(
         USER1,
         default_duration(),
         5,
+        None,
     )?;
 
     let first_bid_amount = 5;
@@ -461,6 +475,7 @@ fn bid_after_time_duration_auction_ended_fails() -> anyhow::Result<()> {
         USER1,
         Time(53),
         5,
+        None,
     )?;
 
     let result = test_bid(
@@ -501,6 +516,7 @@ fn bid_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
         USER1,
         Height(28),
         5,
+        Some(200),
     )?;
 
     let result = test_bid(
@@ -513,6 +529,66 @@ fn bid_after_height_duration_auction_ended_fails() -> anyhow::Result<()> {
     );
 
     assert_eq!(result, Err(BiddingAfterAuctionEnded));
+
+    Ok(())
+}
+
+#[test]
+fn bid_buyout_price_instantly_wins_the_auction() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let buyout_price = 10;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+        Some(buyout_price),
+    )?;
+
+    let response = test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER2,
+        0,
+        buyout_price,
+        &coins(buyout_price.into(), UANDR),
+    )?;
+
+    assert_eq!(
+        response.messages,
+        vec![
+            SubMsg::new(Asset::native(UANDR, buyout_price).transfer_msg(USER1)?),
+            SubMsg::new(wasm_execute(
+                NFT_ADDR,
+                &TransferNft {
+                    recipient: USER2.to_string(),
+                    token_id: TOKEN1.to_string()
+                },
+                vec![],
+            )?,),
+        ],
+    );
+
+    assert_eq!(
+        response.attributes,
+        vec![
+            attr("action", "instant_buyout"),
+            attr("auction_id", "0"),
+            attr("bid_amount", buyout_price.to_string())
+        ],
+    );
+
+    let auction = query_auction(deps.as_ref(), 0)?.auction;
+
+    assert_eq!(auction.status, Resolved);
 
     Ok(())
 }

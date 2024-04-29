@@ -9,7 +9,7 @@ use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::AuctionStatus::{Active, Canceled, Resolved};
-use tracks_auction_api::api::{AuctionId, Bid, PriceAsset};
+use tracks_auction_api::api::{AuctionId, Bid, PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::{
     AuctionCanceled, AuctionExpired, AuctionIdNotFound, AuctionResolved, AuctionStillInProgress,
     BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded, Cw721NotWhitelisted,
@@ -37,6 +37,7 @@ pub fn receive_nft(
         Ok(CreateAuction {
             duration,
             minimum_bid_amount,
+            buyout_price,
         }) => {
             if duration == Time(0) || duration == Height(0) {
                 return Err(InvalidAuctionDuration);
@@ -50,6 +51,7 @@ pub fn receive_nft(
                 info.sender,
                 msg.token_id,
                 minimum_bid_amount,
+                buyout_price,
             )?;
             Ok(Response::new()
                 .add_attribute("action", "create_auction")
@@ -143,6 +145,13 @@ fn resolve_bid(
         return Err(BidLowerThanMinimum);
     }
 
+    // if buyout price is reached, end the auction here
+    if let Some(buyout_price) = auction.buyout_price {
+        if buyout_price <= bid_amount {
+            return buyout_auction(deps, auction, bidder, bid_asset, bid_amount);
+        }
+    }
+
     let last_active_bid = update_active_bid(
         deps.storage,
         auction_id,
@@ -168,6 +177,39 @@ fn resolve_bid(
     }
 
     Ok(response)
+}
+
+fn buyout_auction(
+    deps: DepsMut,
+    auction: TrackAuction,
+    bidder: Addr,
+    bid_asset: PriceAsset,
+    bid_amount: Uint128,
+) -> AuctionResult<Response> {
+    // TODO: extract send NFT and send assets msgs
+
+    let send_nft_to_buyer_msg = SubMsg::new(wasm_execute(
+        auction.nft_contract.to_string(),
+        &TransferNft {
+            recipient: bidder.to_string(),
+            token_id: auction.track_token_id.to_string(),
+        },
+        vec![],
+    )?);
+
+    let send_bid_amount_msg = SubMsg::new(
+        Asset::new(bid_asset.to_asset_info(), bid_amount)
+            .transfer_msg(auction.creator.to_string())?,
+    );
+
+    update_auction_status(deps.storage, auction.id, Resolved)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "instant_buyout")
+        .add_attribute("auction_id", auction.id.to_string())
+        .add_attribute("bid_amount", bid_amount.to_string())
+        .add_submessage(send_bid_amount_msg)
+        .add_submessage(send_nft_to_buyer_msg))
 }
 
 pub fn resolve_auction(

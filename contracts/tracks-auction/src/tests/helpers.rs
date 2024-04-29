@@ -85,6 +85,7 @@ pub fn create_test_auction(
     creator: &str,
     duration: Duration,
     minimum_bid_amount: u8,
+    buyout_price: Option<u8>,
 ) -> AuctionResult<Response> {
     receive_nft(
         deps,
@@ -96,6 +97,7 @@ pub fn create_test_auction(
             msg: to_json_binary(&CreateAuction {
                 duration,
                 minimum_bid_amount: minimum_bid_amount.into(),
+                buyout_price: buyout_price.map(|it| it.into()),
             })?,
         },
     )

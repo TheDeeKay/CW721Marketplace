@@ -63,8 +63,15 @@ pub enum Cw721HookMsg {
         /// Duration of the auction. Once it ends, no new bids are accepted, and if there is
         /// an active bid, that bid wins the auction.
         duration: Duration,
+
         /// Minimum amount of funds to be accepted as the first bid
         minimum_bid_amount: Uint128,
+
+        /// Optional amount to pay to instantly purchase the auction.
+        ///
+        /// If the amount is specified and someone bids that or higher amount, the auction
+        /// ends immediately, and they win the bidding.
+        buyout_price: Option<Uint128>,
     },
 }
 

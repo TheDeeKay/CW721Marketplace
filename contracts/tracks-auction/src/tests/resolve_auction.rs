@@ -46,6 +46,7 @@ fn resolve_auction_time_duration_that_did_not_expire_fails() -> anyhow::Result<(
         USER1,
         Time(20),
         5,
+        None,
     )?;
 
     let result = test_resolve_auction(deps.as_mut(), after_seconds(&env, 20), USER1, 0);
@@ -70,6 +71,7 @@ fn resolve_auction_height_duration_that_did_not_expire_fails() -> anyhow::Result
         USER1,
         Height(15),
         5,
+        None,
     )?;
 
     let result = test_resolve_auction(deps.as_mut(), after_height(&env, 15), USER1, 0);
@@ -94,6 +96,7 @@ fn resolve_auction_height_duration_with_no_active_bid_refunds_nft() -> anyhow::R
         USER1,
         Height(15),
         5,
+        None,
     )?;
 
     let response = test_resolve_auction(deps.as_mut(), after_height(&env, 16), USER1, 0)?;
@@ -133,6 +136,7 @@ fn resolve_auction_ended_time_duration_with_no_active_bid_refunds_nft() -> anyho
         USER1,
         Time(20),
         5,
+        Some(200),
     )?;
 
     let response = test_resolve_auction(deps.as_mut(), after_seconds(&env, 21), USER1, 0)?;
@@ -167,6 +171,7 @@ fn resolve_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> anyhow::
         USER1,
         Height(15),
         5,
+        Some(7),
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 6, &coins(6, UANDR))?;
@@ -209,6 +214,7 @@ fn resolve_auction_that_was_resolved_fails() -> anyhow::Result<()> {
         USER1,
         Height(15),
         5,
+        Some(200),
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 6, &coins(6, UANDR))?;
@@ -239,6 +245,7 @@ fn resolve_auction_that_was_canceled_fails() -> anyhow::Result<()> {
         USER1,
         Height(15),
         5,
+        None,
     )?;
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 6, &coins(6, UANDR))?;

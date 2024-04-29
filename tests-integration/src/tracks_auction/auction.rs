@@ -50,6 +50,7 @@ fn create_auction_only_possible_with_whitelisted_nft_contract() -> anyhow::Resul
             msg: to_json_binary(&CreateAuction {
                 duration: Duration::Time(200),
                 minimum_bid_amount: Uint128::zero(),
+                buyout_price: None,
             })?,
         },
         &vec![],
@@ -100,6 +101,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
             msg: to_json_binary(&CreateAuction {
                 duration: duration.clone(),
                 minimum_bid_amount: 4u128.into(),
+                buyout_price: Some(200u8.into()),
             })?,
         },
         &vec![],
