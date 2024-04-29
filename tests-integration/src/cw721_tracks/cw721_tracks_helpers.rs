@@ -1,5 +1,6 @@
 use crate::helpers::ADMIN;
 use cosmwasm_std::Addr;
+use cw721::{NftInfoResponse, TokensResponse};
 use cw721_tracks_api::api::TrackMetadata;
 use cw721_tracks_api::msg::ExecuteMsg;
 use cw_multi_test::error::AnyResult;
@@ -55,4 +56,29 @@ pub fn mint_nft(
         },
         &vec![],
     )
+}
+
+pub fn query_nft(
+    app: &mut App,
+    nft: Addr,
+    token_id: impl Into<String>,
+) -> AnyResult<NftInfoResponse<TrackMetadata>> {
+    let response: NftInfoResponse<TrackMetadata> = app.wrap().query_wasm_smart(
+        nft,
+        &cw721::Cw721QueryMsg::NftInfo {
+            token_id: token_id.into(),
+        },
+    )?;
+    Ok(response)
+}
+
+pub fn query_nfts(app: &mut App, nft: Addr, start_after: Option<String>) -> AnyResult<Vec<String>> {
+    let response: TokensResponse = app.wrap().query_wasm_smart(
+        nft,
+        &cw721::Cw721QueryMsg::AllTokens {
+            start_after,
+            limit: None,
+        },
+    )?;
+    Ok(response.tokens)
 }
