@@ -5,7 +5,7 @@ use crate::tests::helpers::{
     USER1, USER2, USER3,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
+use cosmwasm_std::{attr, coin, coins, Addr, BlockInfo, Env, SubMsg, Timestamp};
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::{Bid, PriceAsset};
@@ -233,6 +233,14 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
     let response = test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
 
     assert!(response.messages.is_empty());
+    assert_eq!(
+        response.attributes,
+        vec![
+            attr("action", "bid"),
+            attr("auction_id", "0"),
+            attr("bid_amount", "5"),
+        ]
+    );
 
     let auction = query_auction(deps.as_ref(), 0)?.auction;
 

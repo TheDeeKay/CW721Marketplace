@@ -91,7 +91,10 @@ pub fn bid(
                     },
                 )?;
 
-                let base_response = Response::new(); // TODO: add attributes
+                let base_response = Response::new()
+                    .add_attribute("action", "bid")
+                    .add_attribute("auction_id", auction_id.to_string())
+                    .add_attribute("bid_amount", bid_amount.to_string());
 
                 match last_active_bid {
                     Some(bid) => {
