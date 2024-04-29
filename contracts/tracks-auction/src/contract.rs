@@ -10,16 +10,18 @@ use cw721::Cw721ReceiveMsg;
 use cw_asset::Asset;
 use cw_utils::Duration::{Height, Time};
 use tracks_auction_api::api::AuctionStatus::Resolved;
-use tracks_auction_api::api::{AuctionId, Bid, Config, PriceAsset};
+use tracks_auction_api::api::{AuctionId, AuctionStatus, Bid, Config, PriceAsset};
 use tracks_auction_api::error::AuctionError::{
-    AuctionAlreadyResolved, AuctionIdNotFound, AuctionStillInProgress, BidLowerThanMinimum,
-    BidWrongAsset, BiddingAfterAuctionEnded, Cw721NotWhitelisted, InsufficientFundsForBid,
-    InvalidAuctionDuration, NoBidFundsSupplied, UnnecessaryAssetsForBid,
+    AuctionAlreadyResolved, AuctionExpired, AuctionIdNotFound, AuctionStillInProgress,
+    BidLowerThanMinimum, BidWrongAsset, BiddingAfterAuctionEnded, Cw721NotWhitelisted,
+    InsufficientFundsForBid, InvalidAuctionDuration, NoBidFundsSupplied, Unauthorized,
+    UnnecessaryAssetsForBid,
 };
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use AuctionStatus::Active;
 use Cw721HookMsg::CreateAuction;
-use ExecuteMsg::{ReceiveNft, ResolveEndedAuction};
+use ExecuteMsg::{CancelAuction, ReceiveNft, ResolveAuction};
 use QueryMsg::{Auction, Auctions};
 
 // Version info for migration
@@ -59,7 +61,8 @@ pub fn execute(
             auction_id,
             bid_amount,
         } => bid(deps, env, info, auction_id, bid_amount),
-        ResolveEndedAuction { auction_id } => resolve_ended_auction(deps, env, info, auction_id),
+        ResolveAuction { auction_id } => resolve_auction(deps, env, info, auction_id),
+        CancelAuction { auction_id } => cancel_auction(deps, env, info, auction_id),
     }
 }
 
@@ -158,7 +161,7 @@ pub fn bid(
     }
 }
 
-pub fn resolve_ended_auction(
+pub fn resolve_auction(
     deps: DepsMut,
     env: Env,
     _info: MessageInfo,
@@ -172,6 +175,15 @@ pub fn resolve_ended_auction(
 
     if auction.status == Resolved {
         return Err(AuctionAlreadyResolved);
+    }
+
+    match auction.status {
+        Resolved => {
+            return Err(AuctionAlreadyResolved);
+        }
+        Active => {
+            // no-op
+        }
     }
 
     update_auction_status(deps.storage, auction_id, Resolved)?;
@@ -213,6 +225,31 @@ pub fn resolve_ended_auction(
             Ok(base_response.add_submessage(return_nft_submsg))
         }
     }
+}
+
+pub fn cancel_auction(
+    deps: DepsMut,
+    env: Env,
+    _info: MessageInfo,
+    auction_id: AuctionId,
+) -> AuctionResult<Response> {
+    let auction = load_auction(deps.storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    match auction.status {
+        Resolved => {
+            return Err(AuctionAlreadyResolved);
+        }
+        Active => {
+            // no-op
+        }
+    }
+
+    if auction.has_ended(&env.block) {
+        return Err(AuctionExpired);
+    }
+
+    Err(Unauthorized)
+    // Ok(Response::new()) // TODO: add attributes
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

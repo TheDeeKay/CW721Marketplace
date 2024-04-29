@@ -1,4 +1,4 @@
-use crate::contract::resolve_ended_auction;
+use crate::contract::resolve_auction;
 use crate::query::query_auction;
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,
@@ -17,13 +17,13 @@ use tracks_auction_api::error::AuctionError::{
 use Duration::Time;
 
 #[test]
-fn resolve_ended_auction_that_does_not_exist_fails() -> anyhow::Result<()> {
+fn resolve_auction_that_does_not_exist_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
 
-    let result = resolve_ended_auction(deps.as_mut(), env.clone(), mock_info(USER1, &vec![]), 0);
+    let result = resolve_auction(deps.as_mut(), env.clone(), mock_info(USER1, &vec![]), 0);
 
     assert_eq!(result, Err(AuctionIdNotFound));
 
@@ -31,7 +31,7 @@ fn resolve_ended_auction_that_does_not_exist_fails() -> anyhow::Result<()> {
 }
 
 #[test]
-fn resolve_ended_time_duration_auction_that_did_not_expire_fails() -> anyhow::Result<()> {
+fn resolve_auction_time_duration_that_did_not_expire_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -55,7 +55,7 @@ fn resolve_ended_time_duration_auction_that_did_not_expire_fails() -> anyhow::Re
 }
 
 #[test]
-fn resolve_ended_height_duration_auction_that_did_not_expire_fails() -> anyhow::Result<()> {
+fn resolve_auction_height_duration_that_did_not_expire_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -79,7 +79,7 @@ fn resolve_ended_height_duration_auction_that_did_not_expire_fails() -> anyhow::
 }
 
 #[test]
-fn resolve_ended_height_duration_auction_with_no_active_bid_refunds_nft() -> anyhow::Result<()> {
+fn resolve_auction_height_duration_with_no_active_bid_refunds_nft() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -113,7 +113,7 @@ fn resolve_ended_height_duration_auction_with_no_active_bid_refunds_nft() -> any
 }
 
 #[test]
-fn resolve_ended_time_duration_auction_with_no_active_bid_refunds_nft() -> anyhow::Result<()> {
+fn resolve_auction_ended_time_duration_with_no_active_bid_refunds_nft() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -147,7 +147,7 @@ fn resolve_ended_time_duration_auction_with_no_active_bid_refunds_nft() -> anyho
 }
 
 #[test]
-fn resolve_ended_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> anyhow::Result<()> {
+fn resolve_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -189,7 +189,7 @@ fn resolve_ended_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> an
 }
 
 #[test]
-fn resolve_ended_auction_that_was_resolved_fails() -> anyhow::Result<()> {
+fn resolve_auction_that_was_resolved_fails() -> anyhow::Result<()> {
     let mut deps = mock_dependencies();
     let env = mock_env();
 

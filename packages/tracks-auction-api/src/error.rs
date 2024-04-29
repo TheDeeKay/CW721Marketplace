@@ -12,6 +12,9 @@ pub enum AuctionError {
     #[error("{0}")]
     AssetError(#[from] AssetError),
 
+    #[error("Unauthorized")]
+    Unauthorized,
+
     #[error("CW721 you're using is not whitelisted for auctions")]
     Cw721NotWhitelisted,
 
@@ -45,4 +48,7 @@ pub enum AuctionError {
 
     #[error("Auction was already resolved")]
     AuctionAlreadyResolved,
+
+    #[error("Auction has already expired")]
+    AuctionExpired,
 }

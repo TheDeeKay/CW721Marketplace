@@ -1,4 +1,4 @@
-use crate::contract::{bid, instantiate, receive_nft, resolve_ended_auction};
+use crate::contract::{bid, cancel_auction, instantiate, receive_nft, resolve_auction};
 use cosmwasm_std::testing::mock_info;
 use cosmwasm_std::{to_json_binary, BlockInfo, Coin, DepsMut, Env, Response};
 use cw721::Cw721ReceiveMsg;
@@ -104,7 +104,16 @@ pub fn test_resolve_auction(
     sender: &str,
     auction_id: AuctionId,
 ) -> AuctionResult<Response> {
-    resolve_ended_auction(deps, env, mock_info(sender, &vec![]), auction_id)
+    resolve_auction(deps, env, mock_info(sender, &vec![]), auction_id)
+}
+
+pub fn test_cancel_auction(
+    deps: DepsMut,
+    env: Env,
+    sender: &str,
+    auction_id: AuctionId,
+) -> AuctionResult<Response> {
+    cancel_auction(deps, env, mock_info(sender, &vec![]), auction_id)
 }
 
 pub fn no_funds() -> Vec<Coin> {
