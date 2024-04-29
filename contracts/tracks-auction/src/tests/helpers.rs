@@ -1,13 +1,14 @@
 use crate::contract::instantiate;
-use crate::execute::{bid, cancel_auction, receive_nft, resolve_auction};
+use crate::execute::{bid, cancel_auction, receive_cw20, receive_nft, resolve_auction};
 use cosmwasm_std::testing::mock_info;
-use cosmwasm_std::{to_json_binary, BlockInfo, Coin, DepsMut, Env, Response};
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, DepsMut, Env, Response};
+use cw20::Cw20ReceiveMsg;
 use cw721::Cw721ReceiveMsg;
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionId, PriceAsset};
 use tracks_auction_api::error::AuctionResult;
 use tracks_auction_api::msg::Cw721HookMsg::CreateAuction;
-use tracks_auction_api::msg::InstantiateMsg;
+use tracks_auction_api::msg::{Cw20HookMsg, InstantiateMsg};
 
 pub const ADMIN: &str = "admin";
 
@@ -17,6 +18,9 @@ pub const USER3: &str = "user3";
 
 pub const NFT_ADDR: &str = "nft_contract_addr";
 pub const NFT_ADDR2: &str = "another_nft_contract_addr";
+
+pub const CW20_ADDR: &str = "cw20_contract_addr";
+pub const CW20_ADDR2: &str = "another_cw20_contract_addr";
 
 pub const UANDR: &str = "uandr";
 pub const UATOM: &str = "uatom";
@@ -54,6 +58,22 @@ pub fn instantiate_with_native_price_asset(
         instantiator,
         whitelisted_nft,
         PriceAsset::native(native_denom),
+    )
+}
+
+pub fn instantiate_with_cw20_price_asset(
+    deps: DepsMut,
+    env: Env,
+    instantiator: &str,
+    whitelisted_nft: &str,
+    cw20_addr: &str,
+) -> AuctionResult<Response> {
+    test_instantiate(
+        deps,
+        env,
+        instantiator,
+        whitelisted_nft,
+        PriceAsset::cw20(Addr::unchecked(cw20_addr)), // TODO: gotta supply unchecked instead of checked
     )
 }
 
@@ -95,6 +115,30 @@ pub fn test_bid(
         mock_info(bidder, bid_funds),
         auction_id,
         bid_amount.into(),
+    )
+}
+
+pub fn test_cw20_bid(
+    deps: DepsMut,
+    env: Env,
+    bidder: &str,
+    auction_id: AuctionId,
+    bid_amount: u8,
+    amount_sent: u8,
+    cw20: &str,
+) -> AuctionResult<Response> {
+    receive_cw20(
+        deps,
+        env,
+        mock_info(cw20, &vec![]),
+        Cw20ReceiveMsg {
+            sender: bidder.to_string(),
+            amount: amount_sent.into(),
+            msg: to_json_binary(&Cw20HookMsg::Bid {
+                auction_id,
+                bid_amount: bid_amount.into(),
+            })?,
+        },
     )
 }
 

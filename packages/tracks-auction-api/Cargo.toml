@@ -9,6 +9,7 @@ rust-version = "1.75.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+cw20 = { workspace = true }
 cw721 = { workspace = true }
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }

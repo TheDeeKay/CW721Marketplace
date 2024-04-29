@@ -1,13 +1,15 @@
 use crate::config::save_config;
 use crate::execute;
+use crate::execute::{bid, receive_cw20};
 use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
     entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
 };
+use execute::{cancel_auction, receive_nft, resolve_auction};
 use tracks_auction_api::api::{Config, PriceAsset};
 use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use ExecuteMsg::{Bid, CancelAuction, ReceiveNft, ResolveAuction};
+use ExecuteMsg::{Bid, CancelAuction, Receive, ReceiveNft, ResolveAuction};
 use PriceAsset::{Cw20, Native};
 use QueryMsg::{Auction, Auctions};
 
@@ -55,13 +57,14 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> AuctionResult<Response> {
     match msg {
-        ReceiveNft(nft_msg) => execute::receive_nft(deps, env, info, nft_msg),
+        Receive(cw20_msg) => receive_cw20(deps, env, info, cw20_msg),
+        ReceiveNft(nft_msg) => receive_nft(deps, env, info, nft_msg),
         Bid {
             auction_id,
             bid_amount,
-        } => execute::bid(deps, env, info, auction_id, bid_amount),
-        ResolveAuction { auction_id } => execute::resolve_auction(deps, env, info, auction_id),
-        CancelAuction { auction_id } => execute::cancel_auction(deps, env, info, auction_id),
+        } => bid(deps, env, info, auction_id, bid_amount),
+        ResolveAuction { auction_id } => resolve_auction(deps, env, info, auction_id),
+        CancelAuction { auction_id } => cancel_auction(deps, env, info, auction_id),
     }
 }
 

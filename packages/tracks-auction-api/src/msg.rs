@@ -1,6 +1,7 @@
 use crate::api::{AuctionId, AuctionResponse, AuctionsResponse, ConfigResponse, PriceAsset};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
+use cw20::Cw20ReceiveMsg;
 use cw721::Cw721ReceiveMsg;
 use cw_utils::Duration;
 
@@ -39,7 +40,21 @@ pub enum ExecuteMsg {
         auction_id: AuctionId,
     },
 
+    Receive(Cw20ReceiveMsg),
+
     ReceiveNft(Cw721ReceiveMsg),
+}
+
+#[cw_serde]
+pub enum Cw20HookMsg {
+    Bid {
+        /// ID of the auction to bid on.
+        auction_id: AuctionId,
+        /// The amount of auction's price asset to bid.
+        /// Required to be explicitly set, to avoid bugs from implicitly inferring bid amount
+        /// from the funds received (especially if e.g. fees are added later on).
+        bid_amount: Uint128,
+    },
 }
 
 #[cw_serde]
