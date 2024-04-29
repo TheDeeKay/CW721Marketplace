@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, BlockInfo, Uint128};
 use std::ops::Add;
 
 pub type AuctionId = u64;
@@ -7,7 +7,6 @@ pub type AuctionId = u64;
 #[cw_serde]
 pub struct Config {
     pub whitelisted_nft: Addr,
-    // TODO: add PriceAsset here
     pub price_asset: PriceAsset,
 }
 
@@ -16,10 +15,12 @@ pub struct Bid {
     pub amount: Uint128,
     pub asset: PriceAsset,
     pub bidder: Addr,
+    pub posted_at: BlockInfo,
 }
 
 #[cw_serde]
 pub struct TrackAuction {
+    pub created_at: BlockInfo,
     /// ID of the auction posting
     pub id: AuctionId,
     /// The address that submitted this auction. This will be the address that receives the

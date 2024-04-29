@@ -106,6 +106,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     assert_eq!(
         response.auctions,
         vec![TrackAuction {
+            created_at: app.block_info(),
             id: 0,
             submitter: USER1.into_addr(),
             track_token_id: track_token_id.to_string(),

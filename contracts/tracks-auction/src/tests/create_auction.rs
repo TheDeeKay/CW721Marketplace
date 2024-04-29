@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     UANDR, UATOM, USER1,
 };
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, BlockInfo, Env, Timestamp};
 use tracks_auction_api::api::{PriceAsset, TrackAuction};
 use tracks_auction_api::error::AuctionError::Cw721NotWhitelisted;
 
@@ -24,8 +24,17 @@ fn create_auction_for_non_whitelisted_nft_fails() -> anyhow::Result<()> {
 
 #[test]
 fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
+    let current_block = BlockInfo {
+        height: 55214,
+        time: Timestamp::from_nanos(5521400000),
+        chain_id: mock_env().block.chain_id,
+    };
+
     let mut deps = mock_dependencies();
-    let env = mock_env();
+    let env = Env {
+        block: current_block.clone(),
+        ..mock_env()
+    };
 
     instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UATOM)?;
 
@@ -41,6 +50,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     )?;
 
     let expected_auction = TrackAuction {
+        created_at: current_block,
         id: 0,
         submitter: Addr::unchecked(USER1),
         track_token_id: track_token_id.to_string(),

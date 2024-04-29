@@ -75,7 +75,13 @@ pub fn receive_nft(
     match from_json(msg.msg) {
         Ok(CreateAuction { minimum_bid_amount }) => {
             let submitter = deps.api.addr_validate(&msg.sender)?;
-            save_new_auction(deps.storage, submitter, msg.token_id, minimum_bid_amount)?;
+            save_new_auction(
+                deps.storage,
+                _env.block,
+                submitter,
+                msg.token_id,
+                minimum_bid_amount,
+            )?;
             Ok(Response::new()) // TODO: add attributes
         }
         _ => Err(StdError::generic_err("unknown NFT receive hook message").into()),
