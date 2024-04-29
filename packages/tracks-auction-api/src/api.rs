@@ -47,6 +47,11 @@ impl PriceAsset {
 }
 
 #[cw_serde]
+pub struct AuctionResponse {
+    pub auction: TrackAuction,
+}
+
+#[cw_serde]
 pub struct AuctionsResponse {
     pub auctions: Vec<TrackAuction>,
 }

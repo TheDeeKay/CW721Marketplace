@@ -1,4 +1,4 @@
-use crate::query::query_auctions;
+use crate::query::query_auction;
 use crate::tests::helpers::{
     create_test_auction, instantiate_with_native_price_asset, no_funds, test_bid, ADMIN, NFT_ADDR,
     TOKEN1, UANDR, UATOM, USER1, USER2,
@@ -172,11 +172,10 @@ fn bid_with_correct_funds_saves_it_as_active_bid() -> anyhow::Result<()> {
 
     test_bid(deps.as_mut(), env.clone(), USER2, 0, 5, &coins(5, UANDR))?;
 
-    let auctions = query_auctions(deps.as_ref())?.auctions;
+    let auction = query_auction(deps.as_ref(), 0)?.auction;
 
-    // TODO: use something better than [0] here (probably query single auction)
     assert_eq!(
-        auctions[0].active_bid,
+        auction.active_bid,
         Some(Bid {
             amount: 5u8.into(),
             asset: PriceAsset::native(UANDR),

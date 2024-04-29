@@ -1,4 +1,4 @@
-use crate::api::{AuctionId, AuctionsResponse, ConfigResponse, PriceAsset};
+use crate::api::{AuctionId, AuctionResponse, AuctionsResponse, ConfigResponse, PriceAsset};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
 use cw721::Cw721ReceiveMsg;
@@ -38,6 +38,8 @@ pub enum Cw721HookMsg {
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     Config {},
+    #[returns(AuctionResponse)]
+    Auction { id: AuctionId },
     #[returns(AuctionsResponse)]
     Auctions {},
 }

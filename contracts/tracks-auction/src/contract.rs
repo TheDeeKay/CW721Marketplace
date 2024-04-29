@@ -1,6 +1,6 @@
 use crate::auctions::{load_auction, save_new_auction, update_active_bid};
 use crate::config::{load_config, save_config};
-use crate::query::{query_auctions, query_config};
+use crate::query::{query_auction, query_auctions, query_config};
 use cosmwasm_std::{
     entry_point, from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, Uint128,
@@ -15,7 +15,7 @@ use tracks_auction_api::error::{AuctionError, AuctionResult};
 use tracks_auction_api::msg::{Cw721HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use Cw721HookMsg::CreateAuction;
 use ExecuteMsg::ReceiveNft;
-use QueryMsg::Auctions;
+use QueryMsg::{Auction, Auctions};
 
 // Version info for migration
 const CONTRACT_NAME: &str = "tracks-auction";
@@ -133,6 +133,7 @@ pub fn bid(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, AuctionError> {
     let response = match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
+        Auction { id } => to_json_binary(&query_auction(deps, id)?)?,
         Auctions {} => to_json_binary(&query_auctions(deps)?)?,
     };
 
