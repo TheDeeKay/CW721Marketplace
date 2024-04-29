@@ -13,7 +13,8 @@ const MAX_AUCTIONS_QUERY_LIMIT: u32 = 100;
 
 const NEXT_AUCTION_ID: Item<u64> = Item::new("next_auction_id");
 
-const AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("auctions");
+const ACTIVE_AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("active_auctions");
+const FINISHED_AUCTIONS_MAP: Map<u64, TrackAuction> = Map::new("finished_auctions");
 
 pub struct CreateAuctionData {
     pub duration: Duration,
@@ -34,7 +35,7 @@ pub fn save_new_auction(
 
     let config = load_config(storage)?;
 
-    AUCTIONS_MAP.save(
+    ACTIVE_AUCTIONS_MAP.save(
         storage,
         next_auction_id,
         &TrackAuction {
@@ -66,7 +67,7 @@ pub fn update_active_bid(
 
     // TODO: also store the last bid for historical reasons?
 
-    AUCTIONS_MAP.save(
+    ACTIVE_AUCTIONS_MAP.save(
         storage,
         auction_id,
         &TrackAuction {
@@ -78,12 +79,19 @@ pub fn update_active_bid(
     Ok(auction.active_bid)
 }
 
-pub fn update_auction_status(
+/// Move an auction from Active status to one of the final statuses.
+pub fn finish_auction(
     storage: &mut dyn Storage,
     auction_id: AuctionId,
     new_status: AuctionStatus,
 ) -> AuctionResult<()> {
     let auction = load_auction(storage, auction_id)?.ok_or(AuctionIdNotFound)?;
+
+    if new_status == Active {
+        return Err(
+            StdError::generic_err("invalid argument - cannot finalize auction to Active").into(),
+        );
+    }
 
     // only Active status can be changed, others are final
     match auction.status {
@@ -98,7 +106,7 @@ pub fn update_auction_status(
         }
     }
 
-    AUCTIONS_MAP.save(
+    FINISHED_AUCTIONS_MAP.save(
         storage,
         auction_id,
         &TrackAuction {
@@ -106,12 +114,14 @@ pub fn update_auction_status(
             ..auction
         },
     )?;
+    ACTIVE_AUCTIONS_MAP.remove(storage, auction_id);
 
     Ok(())
 }
 
 pub fn load_auctions(
     storage: &dyn Storage,
+    active_auctions: bool,
     start_after: Option<AuctionId>,
     limit: Option<u32>,
 ) -> AuctionResult<Vec<TrackAuction>> {
@@ -120,7 +130,13 @@ pub fn load_auctions(
         .unwrap_or(DEFAULT_AUCTIONS_QUERY_LIMIT)
         .min(MAX_AUCTIONS_QUERY_LIMIT);
 
-    Ok(AUCTIONS_MAP
+    let auctions_map = if active_auctions {
+        ACTIVE_AUCTIONS_MAP
+    } else {
+        FINISHED_AUCTIONS_MAP
+    };
+
+    Ok(auctions_map
         .range(storage, start_after, None, Ascending)
         .take(limit as usize)
         .map(|res| res.map(|(_, auction)| auction))
@@ -128,5 +144,14 @@ pub fn load_auctions(
 }
 
 pub fn load_auction(storage: &dyn Storage, id: AuctionId) -> AuctionResult<Option<TrackAuction>> {
-    Ok(AUCTIONS_MAP.may_load(storage, id)?)
+    // attempt to load from active auctions
+    let active_auction = ACTIVE_AUCTIONS_MAP.may_load(storage, id)?;
+
+    let auction = match active_auction {
+        Some(auction) => Some(auction),
+        // if not active, attempt to load from finished
+        None => FINISHED_AUCTIONS_MAP.may_load(storage, id)?,
+    };
+
+    Ok(auction)
 }

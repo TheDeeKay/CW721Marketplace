@@ -18,9 +18,10 @@ pub fn query_auction(deps: Deps, id: AuctionId) -> AuctionResult<AuctionResponse
 
 pub fn query_auctions(
     deps: Deps,
+    active_auctions: bool,
     start_after: Option<AuctionId>,
     limit: Option<u32>,
 ) -> AuctionResult<AuctionsResponse> {
-    let auctions = load_auctions(deps.storage, start_after, limit)?;
+    let auctions = load_auctions(deps.storage, active_auctions, start_after, limit)?;
     Ok(AuctionsResponse { auctions })
 }

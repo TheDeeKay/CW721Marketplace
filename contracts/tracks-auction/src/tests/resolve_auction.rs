@@ -1,5 +1,5 @@
 use crate::execute::resolve_auction;
-use crate::query::query_auction;
+use crate::query::{query_auction, query_auctions};
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, instantiate_with_native_price_asset,
     test_bid, test_cancel_auction, test_resolve_auction, transfer_nft_msg, ADMIN, NFT_ADDR, TOKEN1,
@@ -173,6 +173,14 @@ fn resolve_auction_with_active_bid_sends_nft_and_bid_to_new_owners() -> anyhow::
 
     let auction = query_auction(deps.as_ref(), 0)?.auction;
     assert_eq!(auction.status, Resolved);
+
+    assert!(query_auctions(deps.as_ref(), true, None, None)?
+        .auctions
+        .is_empty());
+    assert_eq!(
+        query_auctions(deps.as_ref(), false, None, None)?.auctions[0].status,
+        Resolved
+    );
 
     Ok(())
 }

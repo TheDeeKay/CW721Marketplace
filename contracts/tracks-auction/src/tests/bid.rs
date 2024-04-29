@@ -1,4 +1,4 @@
-use crate::query::query_auction;
+use crate::query::{query_auction, query_auctions};
 use crate::tests::helpers::{
     after_height, after_seconds, create_test_auction, default_duration,
     instantiate_with_native_price_asset, no_funds, test_bid, test_cw20_bid, transfer_native_funds,
@@ -600,9 +600,15 @@ fn bid_buyout_price_instantly_wins_the_auction() -> anyhow::Result<()> {
         ],
     );
 
-    let auction = query_auction(deps.as_ref(), 0)?.auction;
+    assert_eq!(query_auction(deps.as_ref(), 0)?.auction.status, Resolved);
 
-    assert_eq!(auction.status, Resolved);
+    assert!(query_auctions(deps.as_ref(), true, None, None)?
+        .auctions
+        .is_empty());
+    assert_eq!(
+        query_auctions(deps.as_ref(), false, None, None)?.auctions[0].status,
+        Resolved
+    );
 
     Ok(())
 }

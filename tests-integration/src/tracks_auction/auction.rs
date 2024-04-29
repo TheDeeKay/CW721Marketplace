@@ -112,6 +112,7 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
     let response: AuctionsResponse = app.wrap().query_wasm_smart(
         tracks_auction.clone(),
         &Auctions {
+            active_auctions: true,
             start_after: None,
             limit: None,
         },

@@ -1,3 +1,4 @@
+use crate::query::{query_auction, query_auctions};
 use crate::tests::helpers::{
     after_seconds, create_test_auction, default_duration, instantiate_with_native_price_asset,
     test_bid, test_cancel_auction, test_resolve_auction, transfer_nft_msg, ADMIN, NFT_ADDR, TOKEN1,
@@ -7,6 +8,7 @@ use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use cosmwasm_std::{attr, coins, SubMsg};
 use cw_asset::Asset;
 use cw_utils::Duration::Time;
+use tracks_auction_api::api::AuctionStatus::Canceled;
 use tracks_auction_api::error::AuctionError::{
     AuctionCanceled, AuctionExpired, AuctionResolved, Unauthorized,
 };
@@ -176,6 +178,16 @@ fn cancel_auction_with_no_bids_sends_back_nft_to_creator() -> anyhow::Result<()>
     assert_eq!(
         response.attributes,
         vec![attr("action", "cancel_auction"), attr("auction_id", "0"),],
+    );
+
+    assert_eq!(query_auction(deps.as_ref(), 0)?.auction.status, Canceled);
+
+    assert!(query_auctions(deps.as_ref(), true, None, None)?
+        .auctions
+        .is_empty());
+    assert_eq!(
+        query_auctions(deps.as_ref(), false, None, None)?.auctions[0].status,
+        Canceled
     );
 
     Ok(())

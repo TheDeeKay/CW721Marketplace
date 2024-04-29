@@ -72,9 +72,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, AuctionErro
     let response = match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
         Auction { id } => to_json_binary(&query_auction(deps, id)?)?,
-        Auctions { start_after, limit } => {
-            to_json_binary(&query_auctions(deps, start_after, limit)?)?
-        }
+        Auctions {
+            active_auctions,
+            start_after,
+            limit,
+        } => to_json_binary(&query_auctions(deps, active_auctions, start_after, limit)?)?,
     };
 
     Ok(response)

@@ -1,5 +1,5 @@
 use crate::auctions::{
-    load_auction, save_new_auction, update_active_bid, update_auction_status, CreateAuctionData,
+    finish_auction, load_auction, save_new_auction, update_active_bid, CreateAuctionData,
 };
 use crate::config::load_config;
 use cosmwasm_std::{
@@ -197,7 +197,7 @@ fn buyout_auction(
         Asset::new(bid_asset.to_asset_info(), bid_amount).transfer_msg(auction.creator)?,
     );
 
-    update_auction_status(deps.storage, auction.id, Resolved)?;
+    finish_auction(deps.storage, auction.id, Resolved)?;
 
     Ok(Response::new()
         .add_attribute("action", "instant_buyout")
@@ -236,7 +236,7 @@ pub fn resolve_auction(
         }
     }
 
-    update_auction_status(deps.storage, auction_id, Resolved)?;
+    finish_auction(deps.storage, auction_id, Resolved)?;
 
     let base_response = Response::new()
         .add_attribute("action", "resolve_auction")
@@ -294,7 +294,7 @@ pub fn cancel_auction(
 
     let refund_previous_bid_msg = refund_previous_bid_msg(&auction)?;
 
-    update_auction_status(deps.storage, auction_id, Canceled)?;
+    finish_auction(deps.storage, auction_id, Canceled)?;
 
     let send_nft_back_submsg = transfer_nft_msg(
         auction.nft_contract,

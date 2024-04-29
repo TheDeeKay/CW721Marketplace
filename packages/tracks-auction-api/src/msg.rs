@@ -86,6 +86,9 @@ pub enum QueryMsg {
     Auction { id: AuctionId },
     #[returns(AuctionsResponse)]
     Auctions {
+        /// Whether the query should return active auctions.
+        /// When set to false, will return finished auctions.
+        active_auctions: bool,
         /// Optional parameter to start listing items after a certain ID (used for pagination)
         start_after: Option<AuctionId>,
         /// Optional parameter to limit the size of query response

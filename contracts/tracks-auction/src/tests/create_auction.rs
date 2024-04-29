@@ -134,9 +134,14 @@ fn create_auction_saves_it_with_relevant_data() -> anyhow::Result<()> {
 
     assert_eq!(response.auction, expected_auction.clone());
 
-    let response = query_auctions(deps.as_ref(), None, None)?;
+    assert_eq!(
+        query_auctions(deps.as_ref(), true, None, None)?.auctions,
+        vec![expected_auction]
+    );
 
-    assert_eq!(response.auctions, vec![expected_auction]);
+    assert!(query_auctions(deps.as_ref(), false, None, None)?
+        .auctions
+        .is_empty());
 
     Ok(())
 }
@@ -183,20 +188,24 @@ fn create_auction_increments_auction_ids() -> anyhow::Result<()> {
 
     assert_eq!(query_auction(deps.as_ref(), 1)?.auction.id, 1);
 
-    let response = query_auctions(deps.as_ref(), None, None)?;
+    let response = query_auctions(deps.as_ref(), true, None, None)?;
 
     assert_eq!(response.auctions[0].id, 0);
     assert_eq!(response.auctions[1].id, 1);
 
     // ensure pagination works for query_auctions
 
-    let response = query_auctions(deps.as_ref(), None, Some(1))?;
+    let response = query_auctions(deps.as_ref(), true, None, Some(1))?;
     assert_eq!(response.auctions.len(), 1);
     assert_eq!(response.auctions[0].id, 0);
 
-    let response = query_auctions(deps.as_ref(), Some(0), None)?;
+    let response = query_auctions(deps.as_ref(), true, Some(0), None)?;
     assert_eq!(response.auctions.len(), 1);
     assert_eq!(response.auctions[0].id, 1);
+
+    assert!(query_auctions(deps.as_ref(), false, None, None)?
+        .auctions
+        .is_empty());
 
     Ok(())
 }
