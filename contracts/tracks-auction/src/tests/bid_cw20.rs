@@ -529,3 +529,42 @@ fn bid_cw20_buyout_price_instantly_wins_the_auction() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn bid_cw20_buyout_price_refunds_previous_bid() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_cw20_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, CW20_ADDR)?;
+
+    let buyout_price = 10;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+        Some(buyout_price),
+    )?;
+
+    test_cw20_bid(deps.as_mut(), env.clone(), USER2, 0, 6, 6, CW20_ADDR)?;
+
+    let response = test_cw20_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER3,
+        0,
+        buyout_price,
+        buyout_price,
+        CW20_ADDR,
+    )?;
+
+    assert!(response
+        .messages
+        .contains(&transfer_cw20_funds(CW20_ADDR, 6, USER2)?));
+
+    Ok(())
+}

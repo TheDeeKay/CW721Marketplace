@@ -581,3 +581,41 @@ fn bid_buyout_price_instantly_wins_the_auction() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn bid_buyout_price_refunds_previous_bid() -> anyhow::Result<()> {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    instantiate_with_native_price_asset(deps.as_mut(), env.clone(), ADMIN, NFT_ADDR, UANDR)?;
+
+    let buyout_price = 10;
+
+    create_test_auction(
+        deps.as_mut(),
+        env.clone(),
+        NFT_ADDR,
+        TOKEN1,
+        USER1,
+        default_duration(),
+        5,
+        Some(buyout_price),
+    )?;
+
+    test_bid(deps.as_mut(), env.clone(), USER2, 0, 6, &coins(6, UANDR))?;
+
+    let response = test_bid(
+        deps.as_mut(),
+        env.clone(),
+        USER3,
+        0,
+        buyout_price,
+        &coins(buyout_price.into(), UANDR),
+    )?;
+
+    assert!(response
+        .messages
+        .contains(&transfer_native_funds(UANDR, 6, USER2)?));
+
+    Ok(())
+}

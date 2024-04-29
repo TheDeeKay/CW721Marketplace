@@ -157,7 +157,7 @@ fn resolve_bid(
         }
     }
 
-    let last_active_bid = update_active_bid(
+    update_active_bid(
         deps.storage,
         auction_id,
         Bid {
@@ -168,20 +168,12 @@ fn resolve_bid(
         },
     )?;
 
-    let mut response = Response::new()
+    Ok(Response::new()
         .add_attribute("action", "bid")
         .add_attribute("auction_id", auction_id.to_string())
-        .add_attribute("bid_amount", bid_amount.to_string());
-
-    // if there was an active bid before this, refund it
-    if let Some(bid) = last_active_bid {
-        let refund_bid_submsg = SubMsg::new(
-            Asset::new(bid_asset.to_asset_info(), bid.amount).transfer_msg(bid.bidder)?,
-        );
-        response = response.add_submessage(refund_bid_submsg)
-    }
-
-    Ok(response)
+        .add_attribute("bid_amount", bid_amount.to_string())
+        // if there was an active bid before this, refund it
+        .add_submessages(refund_previous_bid_msg(&auction)?))
 }
 
 fn buyout_auction(
@@ -192,7 +184,9 @@ fn buyout_auction(
     bid_amount: Uint128,
 ) -> AuctionResult<Response> {
     let send_nft_to_buyer_msg =
-        transfer_nft_msg(auction.nft_contract, bidder, auction.track_token_id)?;
+        transfer_nft_msg(&auction.nft_contract, bidder, &auction.track_token_id)?;
+
+    let refund_previous_bid_msg = refund_previous_bid_msg(&auction)?;
 
     let send_bid_amount_msg = SubMsg::new(
         Asset::new(bid_asset.to_asset_info(), bid_amount).transfer_msg(auction.creator)?,
@@ -205,7 +199,8 @@ fn buyout_auction(
         .add_attribute("auction_id", auction.id.to_string())
         .add_attribute("bid_amount", bid_amount.to_string())
         .add_submessage(send_bid_amount_msg)
-        .add_submessage(send_nft_to_buyer_msg))
+        .add_submessage(send_nft_to_buyer_msg)
+        .add_submessages(refund_previous_bid_msg))
 }
 
 pub fn resolve_auction(
@@ -292,6 +287,8 @@ pub fn cancel_auction(
         return Err(AuctionExpired);
     }
 
+    let refund_previous_bid_msg = refund_previous_bid_msg(&auction)?;
+
     update_auction_status(deps.storage, auction_id, Canceled)?;
 
     let send_nft_back_submsg = transfer_nft_msg(
@@ -299,31 +296,34 @@ pub fn cancel_auction(
         auction.creator,
         auction.track_token_id,
     )?;
-
-    let refund_bid_submsg = match auction.active_bid {
-        Some(bid) => vec![SubMsg::new(
-            Asset::new(bid.asset.to_asset_info(), bid.amount).transfer_msg(bid.bidder)?,
-        )],
-        None => vec![],
-    };
-
     Ok(Response::new()
         .add_attribute("action", "cancel_auction")
         .add_attribute("auction_id", auction_id.to_string())
         .add_submessage(send_nft_back_submsg)
-        .add_submessages(refund_bid_submsg))
+        .add_submessages(refund_previous_bid_msg))
+}
+
+fn refund_previous_bid_msg(auction: &TrackAuction) -> AuctionResult<Vec<SubMsg>> {
+    let refund_previous_bid_msg = match &auction.active_bid {
+        Some(bid) => vec![SubMsg::new(
+            Asset::new(bid.asset.to_asset_info(), bid.amount)
+                .transfer_msg(bid.bidder.to_string())?,
+        )],
+        None => vec![],
+    };
+    Ok(refund_previous_bid_msg)
 }
 
 fn transfer_nft_msg(
     nft_contract: impl Into<String>,
     recipient: impl Into<String>,
-    token_id: String,
+    token_id: impl Into<String>,
 ) -> AuctionResult<SubMsg> {
     Ok(SubMsg::new(wasm_execute(
         nft_contract.into(),
         &TransferNft {
             recipient: recipient.into(),
-            token_id,
+            token_id: token_id.into(),
         },
         vec![],
     )?))
