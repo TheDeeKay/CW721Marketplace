@@ -1,3 +1,4 @@
+use crate::cw20_helpers::cw20_helpers::store_and_instantiate_cw20;
 use crate::cw721_tracks::cw721_tracks_helpers::store_and_instantiate_cw721_tracks;
 use crate::tracks_auction::tracks_auction_helpers::store_and_instantiate_tracks_auction;
 use cosmwasm_std::{Addr, BlockInfo, Coin, StdResult};
@@ -12,6 +13,7 @@ pub const USER2: &str = "user2";
 pub const USER3: &str = "user3";
 
 pub const UATOM: &str = "uatom";
+pub const UANDR: &str = "uandr";
 
 const BLOCK_TIME_SEC: u64 = 5;
 
@@ -30,10 +32,11 @@ pub struct TestFixture {
     pub app: App,
     pub cw721_tracks: ContractInfo,
     pub tracks_auction: ContractInfo,
+    pub cw20: ContractInfo,
 }
 
 impl TestFixture {
-    pub fn new() -> TestFixture {
+    pub fn new_with_native(denom: &str) -> TestFixture {
         let mut app = App::default();
 
         let (cw721_tracks_code_id, cw721_tracks) =
@@ -42,7 +45,28 @@ impl TestFixture {
         let (tracks_auction_code_id, tracks_auction) = store_and_instantiate_tracks_auction(
             &mut app,
             cw721_tracks.to_string(),
-            PriceAssetUnchecked::native(UATOM),
+            PriceAssetUnchecked::native(denom),
+        )
+        .unwrap();
+
+        let (cw20_code_id, cw20) = store_and_instantiate_cw20(&mut app).unwrap();
+
+        TestFixture {
+            app,
+            cw721_tracks: ContractInfo::new(cw721_tracks, cw721_tracks_code_id),
+            tracks_auction: ContractInfo::new(tracks_auction, tracks_auction_code_id),
+            cw20: ContractInfo::new(cw20, cw20_code_id),
+        }
+    }
+
+    pub fn new_with_cw20(mut app: App, cw20_code_id: u64, cw20: Addr) -> TestFixture {
+        let (cw721_tracks_code_id, cw721_tracks) =
+            store_and_instantiate_cw721_tracks(&mut app).unwrap();
+
+        let (tracks_auction_code_id, tracks_auction) = store_and_instantiate_tracks_auction(
+            &mut app,
+            cw721_tracks.to_string(),
+            PriceAssetUnchecked::cw20(cw20.to_string()),
         )
         .unwrap();
 
@@ -50,17 +74,21 @@ impl TestFixture {
             app,
             cw721_tracks: ContractInfo::new(cw721_tracks, cw721_tracks_code_id),
             tracks_auction: ContractInfo::new(tracks_auction, tracks_auction_code_id),
+            cw20: ContractInfo {
+                addr: cw20,
+                code_id: cw20_code_id,
+            },
         }
     }
 }
 
-pub trait ImplApp {
+pub trait NativeMInt {
     fn mint_native(&mut self, addr: &str, coins: Vec<Coin>) -> AnyResult<()>;
     fn mint_native_multi(&mut self, balances: Vec<(impl Into<String>, Vec<Coin>)>)
         -> AnyResult<()>;
 }
 
-impl ImplApp for App {
+impl NativeMInt for App {
     fn mint_native(&mut self, addr: &str, coins: Vec<Coin>) -> AnyResult<()> {
         self.sudo(SudoMsg::Bank(BankSudo::Mint {
             to_address: addr.into_addr().to_string(),

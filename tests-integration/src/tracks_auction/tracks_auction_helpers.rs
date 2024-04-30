@@ -1,4 +1,5 @@
-use crate::helpers::{ImplApp, TestFixture, ADMIN};
+use crate::cw20_helpers::cw20_helpers::{Cw20Burn, Cw20Mint};
+use crate::helpers::{NativeMInt, TestFixture, ADMIN};
 use cosmwasm_std::{to_json_binary, Addr, BankMsg, BlockInfo, Coin, CosmosMsg, Uint128};
 use cw721::Cw721ExecuteMsg::SendNft;
 use cw_multi_test::error::AnyResult;
@@ -6,7 +7,7 @@ use cw_multi_test::{App, AppResponse, ContractWrapper, Executor, IntoAddr};
 use cw_utils::Duration;
 use tracks_auction_api::api::{AuctionResponse, Bid, PriceAsset, PriceAssetUnchecked};
 use tracks_auction_api::msg::QueryMsg::Auction;
-use tracks_auction_api::msg::{ExecuteMsg as AuctionExecuteMsg, InstantiateMsg};
+use tracks_auction_api::msg::{Cw20HookMsg, ExecuteMsg as AuctionExecuteMsg, InstantiateMsg};
 use AuctionExecuteMsg::ResolveAuction;
 use BankMsg::Burn;
 use CosmosMsg::Bank;
@@ -68,11 +69,15 @@ pub trait TracksAuctionExecute {
         bid: Coin,
     ) -> AnyResult<AppResponse>;
 
-    fn cancel_auction(
+    fn bid_cw20_on_auction(
         &mut self,
-        sender: &str,
+        bidder: &str,
         auction_id: u64,
+        cw20_addr: Addr,
+        amount: u128,
     ) -> AnyResult<AppResponse>;
+
+    fn cancel_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse>;
 
     fn resolve_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse>;
 }
@@ -129,13 +134,43 @@ impl TracksAuctionExecute for TestFixture {
         result
     }
 
+    fn bid_cw20_on_auction(
+        &mut self,
+        bidder: &str,
+        auction_id: u64,
+        cw20_addr: Addr,
+        amount: u128,
+    ) -> AnyResult<AppResponse> {
+        // TODO: unmint if actual bid fails
+        self.mint_cw20(cw20_addr.clone(), bidder, amount)?;
+
+        let result = self.app.execute_contract(
+            bidder.into_addr(),
+            cw20_addr.clone(),
+            &cw20::Cw20ExecuteMsg::Send {
+                contract: self.tracks_auction.addr.to_string(),
+                amount: amount.into(),
+                msg: to_json_binary(&Cw20HookMsg::Bid {
+                    auction_id,
+                    bid_amount: amount.into(),
+                })?,
+            },
+            &vec![],
+        );
+
+        if result.is_err() {
+            // in case the bid failed, burn the CW20 we minted to restore original state
+            self.burn_cw20(cw20_addr, bidder, amount)?;
+        }
+
+        result
+    }
+
     fn cancel_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             sender.into_addr(),
             self.tracks_auction.addr.clone(),
-            &AuctionExecuteMsg::CancelAuction {
-                auction_id,
-            },
+            &AuctionExecuteMsg::CancelAuction { auction_id },
             &vec![],
         )
     }
@@ -157,6 +192,14 @@ pub trait TracksAuctionQuery {
         auction_id: u64,
         bidder: &str,
         bid: Coin,
+        posted_at: Option<BlockInfo>,
+    );
+    fn assert_active_bid_cw20(
+        &self,
+        auction_id: u64,
+        bidder: &str,
+        cw20_addr: Addr,
+        amount: u128,
         posted_at: Option<BlockInfo>,
     );
 }
@@ -183,6 +226,25 @@ impl TracksAuctionQuery for TestFixture {
             Some(Bid {
                 amount: bid.amount,
                 asset: PriceAsset::native(bid.denom),
+                bidder: bidder.into_addr(),
+                posted_at: posted_at.unwrap_or(self.app.block_info()),
+            })
+        );
+    }
+
+    fn assert_active_bid_cw20(
+        &self,
+        auction_id: u64,
+        bidder: &str,
+        cw20_addr: Addr,
+        amount: u128,
+        posted_at: Option<BlockInfo>,
+    ) {
+        assert_eq!(
+            self.query_active_bid(auction_id).unwrap(),
+            Some(Bid {
+                amount: amount.into(),
+                asset: PriceAsset::cw20(cw20_addr),
                 bidder: bidder.into_addr(),
                 posted_at: posted_at.unwrap_or(self.app.block_info()),
             })

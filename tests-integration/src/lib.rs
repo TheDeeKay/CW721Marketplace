@@ -6,3 +6,6 @@ pub mod cw721_tracks;
 
 #[cfg(test)]
 mod helpers;
+
+#[cfg(test)]
+mod cw20_helpers;
