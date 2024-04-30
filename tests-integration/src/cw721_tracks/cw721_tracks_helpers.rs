@@ -7,6 +7,16 @@ use cw721_tracks_api::msg::ExecuteMsg;
 use cw_multi_test::error::AnyResult;
 use cw_multi_test::{App, AppResponse, ContractWrapper, Executor, IntoAddr};
 
+// TODO: similar to what we have in unit tests, can we unify?
+pub fn default_track_metadata() -> TrackMetadata {
+    TrackMetadata {
+        artist_name: "Boden".to_string(),
+        album: None,
+        track_name: "Debt Spiral".to_string(),
+        audio_track_url: "https://www.usdebtclock.org/".to_string(),
+    }
+}
+
 pub fn store_cw721_tracks_code(app: &mut App) -> u64 {
     app.store_code(Box::new(ContractWrapper::new(
         cw721_tracks::contract::execute,

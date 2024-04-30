@@ -68,6 +68,12 @@ pub trait TracksAuctionExecute {
         bid: Coin,
     ) -> AnyResult<AppResponse>;
 
+    fn cancel_auction(
+        &mut self,
+        sender: &str,
+        auction_id: u64,
+    ) -> AnyResult<AppResponse>;
+
     fn resolve_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse>;
 }
 
@@ -121,6 +127,17 @@ impl TracksAuctionExecute for TestFixture {
         }
 
         result
+    }
+
+    fn cancel_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            sender.into_addr(),
+            self.tracks_auction.addr.clone(),
+            &AuctionExecuteMsg::CancelAuction {
+                auction_id,
+            },
+            &vec![],
+        )
     }
 
     fn resolve_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse> {

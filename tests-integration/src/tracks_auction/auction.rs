@@ -1,37 +1,25 @@
 use crate::assert_is_err;
-use crate::cw721_tracks::cw721_tracks_helpers::{Cw721TracksExecute, Cw721TracksQueries};
+use crate::cw721_tracks::cw721_tracks_helpers::{Cw721TracksExecute, Cw721TracksQueries, default_track_metadata};
 use crate::helpers::{BalanceQuery, MoveBlock, TestFixture, ADMIN, UATOM, USER1, USER2, USER3};
 use crate::tracks_auction::tracks_auction_helpers::{TracksAuctionExecute, TracksAuctionQuery};
 use cosmwasm_std::{coin, coins};
-use cw721_tracks_api::api::TrackMetadata;
 use cw_utils::Duration;
 use Duration::Time;
 
 #[test]
-fn single_nft_auction_with_bidders() -> anyhow::Result<()> {
+fn nft_auction_with_several_bids() -> anyhow::Result<()> {
     let mut fixture = TestFixture::new();
 
     let token_id = "tokenID";
 
-    fixture.mint_nft(
-        USER1,
-        token_id,
-        None,
-        TrackMetadata {
-            artist_name: "Boden".to_string(),
-            album: None,
-            track_name: "Debt Spiral".to_string(),
-            audio_track_url: "https://www.usdebtclock.org/".to_string(),
-        }
-        .clone(),
-    )?;
+    fixture.mint_nft(USER1, token_id, None, default_track_metadata())?;
 
     fixture.create_nft_auction(USER1, token_id, Time(100), 100, None)?;
 
     // lower than minimum bid fails
     assert_is_err!(fixture.bid_on_auction(USER2, 0, coin(99, UATOM)));
 
-    // first over the minimum bid
+    // first over the minimum bid becomes the active bid
     fixture.bid_on_auction(USER2, 0, coin(100, UATOM))?;
     fixture.assert_active_bid(0, USER2, coin(100, UATOM), None);
 
@@ -58,6 +46,66 @@ fn single_nft_auction_with_bidders() -> anyhow::Result<()> {
     fixture.resolve_auction(ADMIN, 0)?;
     fixture.assert_nft_owner(token_id, USER3);
     fixture.assert_balance(USER1, coins(101, UATOM));
+
+    Ok(())
+}
+
+#[test]
+fn nft_auction_with_instant_buyout() -> anyhow::Result<()> {
+    let mut fixture = TestFixture::new();
+
+    let token_id = "tokenID";
+
+    fixture.mint_nft(USER1, token_id, None, default_track_metadata())?;
+
+    fixture.create_nft_auction(USER1, token_id, Time(100), 100, Some(200))?;
+
+    // bid minimum
+    fixture.bid_on_auction(USER2, 0, coin(100, UATOM))?;
+
+    // bidding the buyout price refunds previous bid and instantly finishes the auction
+    fixture.bid_on_auction(USER3, 0, coin(200, UATOM))?;
+
+    // NFT is transferred to the buyer, buyout amount to the auction creator
+    fixture.assert_nft_owner(token_id, USER3);
+    fixture.assert_balance(USER1, coins(200, UATOM));
+
+    // previous bid is refunded
+    fixture.assert_balance(USER2, coins(100, UATOM));
+
+    // resolving or canceling auction after buyout fails
+    assert_is_err!(fixture.resolve_auction(ADMIN, 0));
+    assert_is_err!(fixture.cancel_auction(ADMIN, 0));
+
+    Ok(())
+}
+
+#[test]
+fn nft_auction_cancel() -> anyhow::Result<()> {
+    let mut fixture = TestFixture::new();
+
+    let token_id = "tokenID";
+
+    fixture.mint_nft(USER1, token_id, None, default_track_metadata())?;
+
+    fixture.create_nft_auction(USER1, token_id, Time(100), 100, None)?;
+
+    // make a bid
+    fixture.bid_on_auction(USER2, 0, coin(105, UATOM))?;
+
+    // non-owner cannot cancel the auction
+    assert_is_err!(fixture.cancel_auction(ADMIN, 0));
+
+    // cancel the auction
+    fixture.cancel_auction(USER1, 0)?;
+
+    // NFT is transferred to the original owner, active bid is refunded
+    fixture.assert_nft_owner(token_id, USER1);
+    fixture.assert_balance(USER2, coins(105, UATOM));
+
+    // resolving or canceling auction after canceling fails
+    assert_is_err!(fixture.resolve_auction(ADMIN, 0));
+    assert_is_err!(fixture.cancel_auction(USER1, 0));
 
     Ok(())
 }
