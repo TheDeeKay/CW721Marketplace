@@ -1,4 +1,4 @@
-use crate::helpers::{ImplApp, ADMIN};
+use crate::helpers::{ImplApp, TestFixture, ADMIN};
 use cosmwasm_std::{to_json_binary, Addr, BankMsg, BlockInfo, Coin, CosmosMsg, Uint128};
 use cw721::Cw721ExecuteMsg::SendNft;
 use cw_multi_test::error::AnyResult;
@@ -51,96 +51,124 @@ pub fn store_and_instantiate_tracks_auction(
     addr.map(|address| (code_id, address))
 }
 
-pub fn create_nft_auction(
-    app: &mut App,
-    nft: Addr,
-    auction: Addr,
-    owner: &str,
-    token_id: &str,
-    duration: Duration,
-    minimum_bid_amount: u128,
-    buyout_price: Option<u128>,
-) -> AnyResult<AppResponse> {
-    app.execute_contract(
-        owner.into_addr(),
-        nft,
-        &SendNft {
-            contract: auction.to_string(),
-            token_id: token_id.to_string(),
-            msg: to_json_binary(&tracks_auction_api::msg::Cw721HookMsg::CreateAuction {
-                duration,
-                minimum_bid_amount: Uint128::from(minimum_bid_amount),
-                buyout_price: buyout_price.map(Uint128::from),
-            })?,
-        },
-        &vec![],
-    )
+pub trait TracksAuctionExecute {
+    fn create_nft_auction(
+        &mut self,
+        owner: &str,
+        token_id: &str,
+        duration: Duration,
+        minimum_bid_amount: u128,
+        buyout_price: Option<u128>,
+    ) -> AnyResult<AppResponse>;
+
+    fn bid_on_auction(
+        &mut self,
+        bidder: &str,
+        auction_id: u64,
+        bid: Coin,
+    ) -> AnyResult<AppResponse>;
+
+    fn resolve_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse>;
 }
 
-pub fn bid_on_auction(
-    app: &mut App,
-    auction: Addr,
-    bidder: &str,
-    auction_id: u64,
-    bid: Coin,
-) -> AnyResult<AppResponse> {
-    app.mint_native(bidder, vec![bid.clone()])?;
-
-    let result = app.execute_contract(
-        bidder.into_addr(),
-        auction,
-        &AuctionExecuteMsg::Bid {
-            auction_id,
-            bid_amount: bid.amount,
-        },
-        &vec![bid.clone()],
-    );
-
-    // if bidding failed, burn what we minted to the bidder to make this 'atomic'
-    if result.is_err() {
-        app.execute(bidder.into_addr(), Bank(Burn { amount: vec![bid] }))?;
+impl TracksAuctionExecute for TestFixture {
+    fn create_nft_auction(
+        &mut self,
+        owner: &str,
+        token_id: &str,
+        duration: Duration,
+        minimum_bid_amount: u128,
+        buyout_price: Option<u128>,
+    ) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            owner.into_addr(),
+            self.cw721_tracks.addr.clone(),
+            &SendNft {
+                contract: self.tracks_auction.addr.to_string(),
+                token_id: token_id.to_string(),
+                msg: to_json_binary(&tracks_auction_api::msg::Cw721HookMsg::CreateAuction {
+                    duration,
+                    minimum_bid_amount: Uint128::from(minimum_bid_amount),
+                    buyout_price: buyout_price.map(Uint128::from),
+                })?,
+            },
+            &vec![],
+        )
     }
 
-    result
+    fn bid_on_auction(
+        &mut self,
+        bidder: &str,
+        auction_id: u64,
+        bid: Coin,
+    ) -> AnyResult<AppResponse> {
+        self.app.mint_native(bidder, vec![bid.clone()])?;
+
+        let result = self.app.execute_contract(
+            bidder.into_addr(),
+            self.tracks_auction.addr.clone(),
+            &AuctionExecuteMsg::Bid {
+                auction_id,
+                bid_amount: bid.amount,
+            },
+            &vec![bid.clone()],
+        );
+
+        // if bidding failed, burn what we minted to the bidder to make this 'atomic'
+        if result.is_err() {
+            self.app
+                .execute(bidder.into_addr(), Bank(Burn { amount: vec![bid] }))?;
+        }
+
+        result
+    }
+
+    fn resolve_auction(&mut self, sender: &str, auction_id: u64) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            sender.into_addr(),
+            self.tracks_auction.addr.clone(),
+            &ResolveAuction { auction_id },
+            &vec![],
+        )
+    }
 }
 
-pub fn resolve_auction(
-    app: &mut App,
-    auction: Addr,
-    sender: &str,
-    auction_id: u64,
-) -> AnyResult<AppResponse> {
-    app.execute_contract(
-        sender.into_addr(),
-        auction,
-        &ResolveAuction { auction_id },
-        &vec![],
-    )
-}
-
-pub fn query_active_bid(app: &App, auction: Addr, auction_id: u64) -> AnyResult<Option<Bid>> {
-    let auction: AuctionResponse = app
-        .wrap()
-        .query_wasm_smart(auction, &Auction { id: auction_id })?;
-
-    Ok(auction.auction.active_bid)
-}
-
-pub fn assert_active_bid(
-    app: &App,
-    auction: Addr,
-    auction_id: u64,
-    bidder: &str,
-    bid: Coin,
-    posted_at: BlockInfo,
-) {
-    assert_eq!(
-        query_active_bid(&app, auction, auction_id).unwrap(),
-        Some(Bid {
-            amount: bid.amount,
-            asset: PriceAsset::native(bid.denom),
-            bidder: bidder.into_addr(),
-            posted_at,
-        })
+pub trait TracksAuctionQuery {
+    fn query_active_bid(&self, auction_id: u64) -> AnyResult<Option<Bid>>;
+    fn assert_active_bid(
+        &self,
+        auction_id: u64,
+        bidder: &str,
+        bid: Coin,
+        posted_at: Option<BlockInfo>,
     );
+}
+
+impl TracksAuctionQuery for TestFixture {
+    fn query_active_bid(&self, auction_id: u64) -> AnyResult<Option<Bid>> {
+        let auction: AuctionResponse = self.app.wrap().query_wasm_smart(
+            self.tracks_auction.addr.to_string(),
+            &Auction { id: auction_id },
+        )?;
+
+        Ok(auction.auction.active_bid)
+    }
+
+    fn assert_active_bid(
+        &self,
+        auction_id: u64,
+        bidder: &str,
+        bid: Coin,
+        posted_at: Option<BlockInfo>,
+    ) {
+        assert_eq!(
+            self.query_active_bid(auction_id).unwrap(),
+            Some(Bid {
+                amount: bid.amount,
+                asset: PriceAsset::native(bid.denom),
+                bidder: bidder.into_addr(),
+                posted_at: posted_at.unwrap_or(self.app.block_info()),
+            })
+        );
+    }
 }
